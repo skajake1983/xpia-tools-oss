@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${PREV_TAG}..HEAD"
+          fi
+
+          # Build categorized release notes from conventional commits
+          {
+            echo "NOTES<<EOF"
+
+            FEATURES=$(git log "$RANGE" --pretty=format:"%s" --grep="^feat" | sed 's/^feat[:(]//' | sed 's/^[[:space:]]*/- /')
+            FIXES=$(git log "$RANGE" --pretty=format:"%s" --grep="^fix" | sed 's/^fix[:(]//' | sed 's/^[[:space:]]*/- /')
+            CHORES=$(git log "$RANGE" --pretty=format:"%s" --grep="^chore" | sed 's/^chore[:(]//' | sed 's/^[[:space:]]*/- /')
+
+            if [ -n "$FEATURES" ]; then
+              echo "### Features"
+              echo "$FEATURES"
+              echo ""
+            fi
+            if [ -n "$FIXES" ]; then
+              echo "### Bug Fixes"
+              echo "$FIXES"
+              echo ""
+            fi
+            if [ -n "$CHORES" ]; then
+              echo "### Maintenance"
+              echo "$CHORES"
+              echo ""
+            fi
+
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: ${{ steps.notes.outputs.NOTES }}

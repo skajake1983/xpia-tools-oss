@@ -1,0 +1,19 @@
+node_modules/
+dist/
+*.db
+.env
+.env.local
+.azure-publish-profile.xml
+/server/data/
+/data/
+/deploy/
+/deploy-staging/
+deploy.zip
+*.zip
+query-result.json
+
+# Azure deployment plan/notes (instance-specific — keep private)
+.azure/
+
+# Real deployment parameters (copy from main.parameters.example.json)
+infra/main.parameters.json

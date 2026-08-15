@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/skajake1983/xpia-tools-oss/security/advisories/new
+    about: Please report security issues privately via a GitHub Security Advisory — not as a public issue.
