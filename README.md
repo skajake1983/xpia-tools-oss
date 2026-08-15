@@ -22,6 +22,7 @@ XPIA Tools generates realistic documents, payloads, and web pages containing pro
 - [Getting Started](#getting-started)
 - [Testing](#testing)
 - [Deployment](#deployment)
+- [Fork and Self-Host](#fork-and-self-host)
 - [Architecture](#architecture)
 - [CosmosDB Containers](#cosmosdb-containers)
 - [Security](#security)
@@ -191,6 +192,27 @@ The client's SEO tags read the site origin from `VITE_PUBLIC_SITE_URL` at build 
 This repository does not include a deploy workflow. To automate deployment to your own
 Azure App Service, add a workflow using your publish profile (stored as a repository secret
 such as `AZURE_WEBAPP_PUBLISH_PROFILE`), or use the included `scripts/deploy-azure.ps1` helper.
+
+## Fork and Self-Host
+
+XPIA Tools is MIT-licensed — you are free to **fork it, modify it, self-host it, and even use
+it commercially**. The only conditions are that you keep the MIT `LICENSE` (copyright notice)
+in your copy and retain the third-party attributions in
+[THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md).
+
+To stand up your own version:
+
+1. **Fork** this repository (or click **Use this template** for a clean, standalone copy).
+2. **Install & configure** — run `npm run install:all`, then copy `server/.env.example` →
+   `server/.env` and `client/.env.example` → `client/.env` and fill in your own values.
+3. **Rebrand freely** — the "Built by" credit in `client/src/pages/LandingPage.tsx` and the
+   SEO metadata in `client/index.html` are just code; change them to your own name/brand.
+4. **Set your domain** — `VITE_PUBLIC_SITE_URL`, plus `client/public/robots.txt`,
+   `client/public/sitemap.xml`, and the pages in `static-pages/`.
+5. **Deploy to your own Azure** — see [Deployment](#deployment). No access to the original
+   author's infrastructure is required or granted.
+
+You owe nothing back, though pull requests are always welcome.
 
 ## Architecture
 
