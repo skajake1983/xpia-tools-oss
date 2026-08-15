@@ -21,6 +21,7 @@ XPIA Tools generates realistic documents, payloads, and web pages containing pro
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
 - [Testing](#testing)
+- [CLI (datagen)](#cli-datagen)
 - [Deployment](#deployment)
 - [Fork and Self-Host](#fork-and-self-host)
 - [Architecture](#architecture)
@@ -162,6 +163,22 @@ cd client && npm test
 # Watch mode (server)
 cd server && npx vitest
 ```
+
+## CLI (datagen)
+
+Prefer the terminal? The [`cli/`](./cli) package is a no-UI datagen tool that reuses the same
+generation engine to produce documents, images, and payloads locally — no Azure required.
+
+```bash
+cd cli && npm install
+npm run dev -- generate --type docx --technique di-ignore-previous --out ./out
+npm run dev -- payloads --count 10 --format text
+npm run dev -- list techniques
+```
+
+It also supports LLM-enhanced content against OpenAI-compatible endpoints (OpenAI, Azure AI
+Foundry, Ollama, LM Studio, OpenRouter, xAI) and Google Gemini, with editable prompts.
+See [cli/README.md](./cli/README.md).
 
 ## Deployment
 

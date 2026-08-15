@@ -19,6 +19,9 @@ import { getUserPrompt } from './prompt-template.service';
 
 export type DocType = 'docx' | 'htm' | 'pptx' | 'xlsx' | 'pdf' | 'png' | 'svg' | 'jpg' | 'webp' | 'gif' | 'csv' | 'md' | 'ics' | 'vcf' | 'json' | 'yaml' | 'rtf' | 'qr';
 
+/** Runtime list of all supported document types (mirrors DocType). */
+export const DOC_TYPES: DocType[] = ['docx', 'htm', 'pptx', 'xlsx', 'pdf', 'png', 'svg', 'jpg', 'webp', 'gif', 'csv', 'md', 'ics', 'vcf', 'json', 'yaml', 'rtf', 'qr'];
+
 export interface GenerateDocumentOptions {
   userId: string;
   docType: DocType;

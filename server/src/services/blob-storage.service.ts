@@ -135,7 +135,8 @@ export async function uploadDocument(
     return blobPath;
   }
 
-  // Local filesystem fallback
+  // Local filesystem fallback (skippable for stateless clients like the CLI)
+  if (process.env.XPIA_NO_LOCAL_DOC_STORE === '1') return blobPath;
   const localPath = join(LOCAL_DOCS_DIR, blobPath);
   mkdirSync(dirname(localPath), { recursive: true });
   writeFileSync(localPath, content);

@@ -1,0 +1,41 @@
+{
+  "name": "@xpia/cli",
+  "version": "1.0.0",
+  "private": true,
+  "description": "XPIA Tools datagen CLI — generate XPIA test documents, images, and payloads from the terminal (no web UI).",
+  "license": "MIT",
+  "author": "Jacob Adams",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skajake1983/xpia-tools-oss.git",
+    "directory": "cli"
+  },
+  "bin": {
+    "xpia": "dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsup src/index.ts --format cjs --target node20 --clean",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@vitest/coverage-v8": "^2.1.9",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^2.1.8"
+  }
+}

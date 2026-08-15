@@ -22,6 +22,7 @@ jobs:
           cache-dependency-path: |
             server/package-lock.json
             client/package-lock.json
+            cli/package-lock.json
 
       - name: Install server dependencies
         working-directory: ./server
@@ -47,4 +48,16 @@ jobs:
 
       - name: Run client tests
         working-directory: ./client
+        run: npm test
+
+      - name: Install CLI dependencies
+        working-directory: ./cli
+        run: npm ci
+
+      - name: Lint CLI
+        working-directory: ./cli
+        run: npm run lint
+
+      - name: Run CLI tests
+        working-directory: ./cli
         run: npm test
