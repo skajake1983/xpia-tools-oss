@@ -21,6 +21,7 @@ XPIA Tools generates realistic documents, payloads, and web pages containing pro
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
 - [Testing](#testing)
+- [Versioning & Releases](#versioning--releases)
 - [CLI (datagen)](#cli-datagen)
 - [Deployment](#deployment)
 - [Fork and Self-Host](#fork-and-self-host)
@@ -162,7 +163,36 @@ cd client && npm test
 
 # Watch mode (server)
 cd server && npx vitest
+
+# Coverage (server or client) — enforces the configured thresholds
+cd server && npm run test:coverage
 ```
+
+## Versioning & Releases
+
+XPIA Tools follows [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`); the
+`server`, `client`, and `cli` packages share the repository version.
+
+**Conventional Commits.** Commit messages use the [Conventional Commits](https://www.conventionalcommits.org/)
+convention (`feat:`, `fix:`, `chore:`, …) — see [CONTRIBUTING.md](./CONTRIBUTING.md). The release
+tooling groups commits by prefix, so the prefix determines where a change lands in the notes:
+
+- `feat:` → **Features** (bump the minor version)
+- `fix:` → **Bug Fixes** (bump the patch version)
+- `chore:` / `docs:` / `refactor:` / `test:` / … → **Maintenance**
+
+**Cutting a release.** A release is cut by pushing a version tag:
+
+```bash
+# 1. Move the [Unreleased] notes in CHANGELOG.md under the new version heading
+# 2. Tag and push
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+Pushing a `v*` tag triggers the Release workflow ([`.github/workflows/release.yml`](./.github/workflows/release.yml)),
+which builds categorized notes from the Conventional Commits since the previous tag and drafts a
+GitHub Release. The running history lives in [CHANGELOG.md](./CHANGELOG.md).
 
 ## CLI (datagen)
 
@@ -177,8 +207,8 @@ npm run dev -- list techniques
 ```
 
 It also supports LLM-enhanced content against OpenAI-compatible endpoints (OpenAI, Azure AI
-Foundry, Ollama, LM Studio, OpenRouter, xAI) and Google Gemini, with editable prompts.
-See [cli/README.md](./cli/README.md).
+Foundry, Ollama, LM Studio, OpenRouter, xAI), Google Gemini, Anthropic (Claude), and Azure
+OpenAI (native), with editable prompts. See [cli/README.md](./cli/README.md).
 
 ## Deployment
 
@@ -203,7 +233,7 @@ The client's SEO tags read the site origin from `VITE_PUBLIC_SITE_URL` at build 
 
 ### CI/CD
 
-- **Pull Requests → `main`**: the CI workflow (`.github/workflows/ci.yml`) runs the build and full test suite.
+- **Pull Requests → `main`**: the CI workflow (`.github/workflows/ci.yml`) lints, builds, and runs the full test suite (with coverage thresholds) for the server, client, and CLI.
 - **Tags `v*`**: the Release workflow (`.github/workflows/release.yml`) drafts GitHub release notes.
 
 This repository does not include a deploy workflow. To automate deployment to your own

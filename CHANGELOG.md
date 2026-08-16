@@ -10,6 +10,21 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 
 ## [Unreleased]
 
+### Added
+
+- Anthropic (Claude) and Azure OpenAI (native) LLM provider adapters, registered in the gateway.
+- Admin console "Add Integration" catalog picker to install a provider and its default model(s)
+  in one click.
+- Anthropic-specific research-framing system prompt.
+- Test coverage reporting (`@vitest/coverage-v8`) with regression-floor thresholds for the server
+  and client (`npm run test:coverage`).
+- "Versioning & Releases" section in the README.
+
+### Changed
+
+- CI now lints the server and client and enforces coverage thresholds.
+- Pinned `@eslint/js` to `^9` in the server and client to match the ESLint 9 runtime.
+
 ## [1.0.0] - 2026-08-15
 
 ### Added
