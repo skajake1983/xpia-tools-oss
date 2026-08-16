@@ -2,6 +2,9 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+
+# CLI datagen output (default --out ./out)
+cli/out/
 *.db
 .env
 .env.local
