@@ -12,6 +12,15 @@ interface Provider {
   is_enabled: number;
 }
 
+interface CatalogEntry {
+  key: string;
+  display_name: string;
+  base_url: string;
+  note: string | null;
+  installed: boolean;
+  models: { model_id: string; display_name: string }[];
+}
+
 interface Model {
   id: string;
   provider_id: string;
@@ -114,6 +123,8 @@ export default function AdminPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>('requests');
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
+  const [installingKey, setInstallingKey] = useState<string | null>(null);
   const [models, setModels] = useState<Model[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -186,8 +197,12 @@ export default function AdminPage() {
         const { requests: r } = await api.inviteRequests.list(requestFilter || undefined);
         setRequests(r);
       } else if (tab === 'providers') {
-        const { providers } = await api.admin.getProviders();
-        setProviders(providers);
+        const [providersRes, catalogRes] = await Promise.all([
+          api.admin.getProviders(),
+          api.admin.getIntegrationCatalog(),
+        ]);
+        setProviders(providersRes.providers);
+        setCatalog(catalogRes.catalog);
       } else if (tab === 'models') {
         const [modelsRes, providersRes] = await Promise.all([
           api.admin.getModels(),
@@ -252,6 +267,27 @@ export default function AdminPage() {
   const toggleProvider = async (id: string) => {
     await api.admin.toggleProvider(id);
     loadData();
+  };
+
+  const addIntegration = async (key: string) => {
+    setError('');
+    setSuccess('');
+    setInstallingKey(key);
+    try {
+      const res = await api.admin.addIntegration(key);
+      const modelNote = res.models.length
+        ? ` with ${res.models.length} model${res.models.length === 1 ? '' : 's'}`
+        : '';
+      setSuccess(
+        `Added ${res.provider.display_name}${modelNote}. Add an API key in Settings, then set prices on the Models tab.` +
+          (res.note ? ` ${res.note}` : ''),
+      );
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add integration');
+    } finally {
+      setInstallingKey(null);
+    }
   };
 
   const toggleModel = async (id: string, currentlyEnabled: number, providerId: string) => {
@@ -988,11 +1024,15 @@ export default function AdminPage() {
 
       {/* Providers Tab */}
       {tab === 'providers' && (
+        <div className="space-y-4">
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">LLM Providers</h2>
             <HelpTip text="Enable or disable LLM providers. Disabled providers won't appear in model selectors for users." />
           </div>
+          {providers.length === 0 ? (
+            <p className="text-sm text-gray-400">No providers yet. Add one from the catalog below.</p>
+          ) : (
           <div className="space-y-3">
             {providers.map((p) => (
               <div key={p.id} className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
@@ -1010,6 +1050,46 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+          )}
+        </div>
+
+        {/* Add integration from catalog */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Add Integration</h2>
+            <HelpTip text="Install a provider and its default model(s) from the catalog. After adding, set your API key in Settings and configure prices on the Models tab." />
+          </div>
+          <div className="space-y-3">
+            {catalog.map((c) => (
+              <div key={c.key} className="flex items-center justify-between gap-4 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{c.display_name}</p>
+                  <p className="text-xs text-gray-400 truncate">{c.base_url}</p>
+                  {c.models.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Includes: {c.models.map((m) => m.display_name).join(', ')}
+                    </p>
+                  )}
+                  {c.note && <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{c.note}</p>}
+                </div>
+                {c.installed ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-green-600 whitespace-nowrap">
+                    <Check className="w-4 h-4" /> Installed
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => addIntegration(c.key)}
+                    disabled={installingKey === c.key}
+                    className="btn btn-primary inline-flex items-center gap-1 whitespace-nowrap disabled:opacity-50"
+                  >
+                    {installingKey === c.key ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                    Add
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
         </div>
       )}
 

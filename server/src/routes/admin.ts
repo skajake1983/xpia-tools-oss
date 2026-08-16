@@ -11,6 +11,7 @@ import * as gateway from '../services/llm/gateway';
 import { getMetrics } from '../services/metrics.service';
 import { isInviteRequired, setInviteRequired, isMaintenanceMode, getMaintenanceMessage, getMaintenanceEndsAt, setMaintenanceMode, isMilestoneNotificationsEnabled, setMilestoneNotificationsEnabled } from '../services/settings.service';
 import { getAllPrompts, getPromptRegistry } from '../config/prompts';
+import { INTEGRATION_CATALOG, getIntegrationPreset, presetToRecords } from '../config/integration-catalog';
 import { clearTrustedDevices, blockAllUserTokens } from '../services/auth.service';
 import { logAudit, getAuditLogs } from '../services/audit.service';
 import repos from '../db/repos';
@@ -74,6 +75,80 @@ router.patch('/providers/:id/toggle', async (req: AuthRequest, res: Response) =>
       base_url: updated.baseUrl,
       is_enabled: updated.isEnabled ? 1 : 0,
     } : null,
+  });
+});
+
+// === Integrations (install a provider + default models from a catalog preset) ===
+
+router.get('/integrations/catalog', async (_req: AuthRequest, res: Response) => {
+  const providers = await repos.config.getAllProviders(true);
+  const installed = new Set(providers.map((p) => p.id));
+  res.json({
+    catalog: INTEGRATION_CATALOG.map((preset) => ({
+      key: preset.key,
+      display_name: preset.displayName,
+      base_url: preset.baseUrl,
+      note: preset.note ?? null,
+      installed: installed.has(preset.key),
+      models: preset.models.map((m) => ({ model_id: m.modelId, display_name: m.displayName })),
+    })),
+  });
+});
+
+const addIntegrationSchema = z.object({ key: z.string().min(1) });
+
+router.post('/integrations', async (req: AuthRequest, res: Response) => {
+  const { key } = addIntegrationSchema.parse(req.body);
+
+  const preset = getIntegrationPreset(key);
+  if (!preset) {
+    res.status(400).json({ error: 'Unknown integration preset' });
+    return;
+  }
+
+  // Provider id == preset key, so an existing provider means it's already installed.
+  const existing = await repos.config.getProvider(preset.key);
+  if (existing) {
+    res.status(409).json({ error: `Integration "${preset.displayName}" is already installed` });
+    return;
+  }
+
+  const { provider, models } = presetToRecords(preset, new Date().toISOString());
+
+  await repos.config.upsert(provider);
+  logAudit({
+    action: 'provider_created',
+    actorId: req.user!.userId,
+    actorEmail: req.user!.email,
+    targetType: 'provider',
+    targetId: provider.id,
+    targetLabel: provider.displayName,
+    detail: `Installed integration "${provider.displayName}" from catalog`,
+  });
+
+  for (const m of models) {
+    await repos.config.createModel(m);
+    logAudit({
+      action: 'model_created',
+      actorId: req.user!.userId,
+      actorEmail: req.user!.email,
+      targetType: 'model',
+      targetId: m.id,
+      targetLabel: m.displayName,
+      detail: `Created model "${m.displayName}" (${m.modelId}) for ${provider.displayName} (catalog install)`,
+    });
+  }
+
+  res.status(201).json({
+    provider: {
+      id: provider.id,
+      name: provider.name,
+      display_name: provider.displayName,
+      base_url: provider.baseUrl,
+      is_enabled: 1,
+    },
+    models: models.map((m) => ({ id: m.id, model_id: m.modelId, display_name: m.displayName })),
+    note: preset.note ?? null,
   });
 });
 

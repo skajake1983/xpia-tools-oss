@@ -653,6 +653,25 @@ export const api = {
     toggleProvider: (id: string) =>
       request<{ provider: unknown }>(`/admin/providers/${id}/toggle`, { method: 'PATCH' }),
 
+    getIntegrationCatalog: () =>
+      request<{
+        catalog: {
+          key: string;
+          display_name: string;
+          base_url: string;
+          note: string | null;
+          installed: boolean;
+          models: { model_id: string; display_name: string }[];
+        }[];
+      }>('/admin/integrations/catalog'),
+
+    addIntegration: (key: string) =>
+      request<{
+        provider: { id: string; name: string; display_name: string; base_url: string; is_enabled: number };
+        models: { id: string; model_id: string; display_name: string }[];
+        note: string | null;
+      }>('/admin/integrations', { method: 'POST', body: JSON.stringify({ key }) }),
+
     getModels: () =>
       request<{
         models: {
