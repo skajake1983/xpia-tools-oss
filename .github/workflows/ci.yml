@@ -28,17 +28,25 @@ jobs:
         working-directory: ./server
         run: npm ci
 
+      - name: Lint server
+        working-directory: ./server
+        run: npm run lint
+
       - name: Build server
         working-directory: ./server
         run: npm run build
 
-      - name: Run server tests
+      - name: Run server tests (with coverage)
         working-directory: ./server
-        run: npm test
+        run: npm run test:coverage
 
       - name: Install client dependencies
         working-directory: ./client
         run: npm ci
+
+      - name: Lint client
+        working-directory: ./client
+        run: npm run lint
 
       - name: Build client
         working-directory: ./client
@@ -46,9 +54,9 @@ jobs:
         env:
           VITE_API_URL: /api
 
-      - name: Run client tests
+      - name: Run client tests (with coverage)
         working-directory: ./client
-        run: npm test
+        run: npm run test:coverage
 
       - name: Install CLI dependencies
         working-directory: ./cli
