@@ -12,6 +12,8 @@ import { config } from '../../config';
 import { decryptApiKey } from './encryption';
 import { OpenAIAdapter } from './adapters/openai';
 import { GoogleAdapter } from './adapters/google';
+import { AnthropicAdapter } from './adapters/anthropic';
+import { AzureOpenAIAdapter } from './adapters/azure-openai';
 import {
   LLMAdapter,
   LLMMessage,
@@ -68,6 +70,12 @@ function getAdapter(provider: ProviderDoc): LLMAdapter {
   switch (provider.name) {
     case 'google':
       adapter = new GoogleAdapter(provider.baseUrl);
+      break;
+    case 'anthropic':
+      adapter = new AnthropicAdapter(provider.baseUrl);
+      break;
+    case 'azure-openai':
+      adapter = new AzureOpenAIAdapter(provider.id, provider.baseUrl);
       break;
     case 'openai':
     case 'xai':

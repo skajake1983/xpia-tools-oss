@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { getResearchSystemPrompt, prependResearchContext } from './gateway';
 import type { LLMMessage } from './adapters/types';
 
-const KNOWN_PROVIDERS = ['openai', 'google', 'xai'];
+const KNOWN_PROVIDERS = ['openai', 'google', 'xai', 'anthropic'];
 
 describe('Research System Prompts', () => {
   for (const provider of KNOWN_PROVIDERS) {
@@ -37,7 +37,7 @@ describe('Research System Prompts', () => {
     }
   });
 
-  it('all three providers have unique prompts', async () => {
+  it('all known providers have unique prompts', async () => {
     const prompts = new Set(await Promise.all(KNOWN_PROVIDERS.map(p => getResearchSystemPrompt(p))));
     expect(prompts.size).toBe(KNOWN_PROVIDERS.length);
   });

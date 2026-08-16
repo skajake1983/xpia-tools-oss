@@ -16,9 +16,9 @@ describe('catalog', () => {
     expect(catalogKeys()).toContain('anthropic');
   });
 
-  it('marks adapter-dependent presets', () => {
-    expect(getPreset('anthropic')?.needsAdapter).toBe(true);
-    expect(getPreset('azure-openai')?.needsAdapter).toBe(true);
+  it('exposes anthropic and azure-openai presets (adapter-backed via provider.name)', () => {
+    expect(getPreset('anthropic')?.provider.name).toBe('anthropic');
+    expect(getPreset('azure-openai')?.provider.name).toBe('azure-openai');
   });
 
   it('marks local providers keyless', () => {

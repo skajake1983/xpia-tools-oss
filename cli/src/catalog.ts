@@ -4,14 +4,12 @@ export interface CatalogPreset {
   key: string;
   provider: Omit<CliProvider, 'isEnabled'>;
   models: CliModel[];
-  /** True when the preset needs an adapter not yet shipped (Anthropic / Azure OpenAI native). */
-  needsAdapter?: boolean;
   note?: string;
 }
 
 /**
- * Built-in integration presets. OpenAI-compatible providers work today via the gateway's
- * baseUrl handling; `needsAdapter` entries ship with the dedicated provider update.
+ * Built-in integration presets. OpenAI-compatible providers work via the gateway's
+ * baseUrl handling; Anthropic and Azure OpenAI have dedicated adapters.
  */
 export const CATALOG: CatalogPreset[] = [
   {
@@ -65,17 +63,14 @@ export const CATALOG: CatalogPreset[] = [
     key: 'anthropic',
     provider: { id: 'anthropic', name: 'anthropic', displayName: 'Anthropic (Claude)', baseUrl: 'https://api.anthropic.com/v1' },
     models: [
-      { id: 'claude-3-5-sonnet', providerId: 'anthropic', modelId: 'claude-3-5-sonnet-latest', displayName: 'Claude 3.5 Sonnet', maxOutputTokens: 4096, maxContextTokens: 200000 },
+      { id: 'claude-sonnet-4-5', providerId: 'anthropic', modelId: 'claude-sonnet-4-5', displayName: 'Claude Sonnet 4.5', maxOutputTokens: 8192, maxContextTokens: 200000 },
     ],
-    needsAdapter: true,
-    note: 'Requires the Anthropic adapter (shipping with the provider update).',
   },
   {
     key: 'azure-openai',
     provider: { id: 'azure-openai', name: 'azure-openai', displayName: 'Azure OpenAI (native)', baseUrl: 'https://YOUR-RESOURCE.openai.azure.com' },
     models: [],
-    needsAdapter: true,
-    note: 'Requires the Azure OpenAI adapter (shipping with the provider update).',
+    note: 'Set baseUrl to your Azure OpenAI resource endpoint and add a model whose modelId is the deployment name. Override the REST API version with AZURE_OPENAI_API_VERSION (default 2024-10-21).',
   },
 ];
 

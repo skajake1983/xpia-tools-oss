@@ -9,16 +9,32 @@ const REASONING_MODELS = /^(o[1-4]|gpt-5)/;
 
 /** OpenAI-compatible adapter (works for OpenAI, xAI/Grok, and other compatible providers) */
 export class OpenAIAdapter implements LLMAdapter {
+  /** Human-readable label used in errors and logs; overridden by subclasses. */
+  protected readonly label: string = 'OpenAI';
+
   constructor(
     public readonly providerId: string,
-    private baseUrl: string,
+    protected baseUrl: string,
   ) {}
+
+  /** Build the chat-completions URL. Overridden by Azure OpenAI (deployment-based). */
+  protected buildChatUrl(_model: string): string {
+    return `${this.baseUrl}/chat/completions`;
+  }
+
+  /** Build request headers. Overridden by Azure OpenAI (api-key header). */
+  protected buildHeaders(apiKey: string): Record<string, string> {
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    };
+  }
 
   /**
    * For reasoning models, the requested maxTokens is the desired OUTPUT size.
    * We multiply by 4× to give the model headroom for internal reasoning.
    */
-  private effectiveMaxTokens(model: string, requested: number): number {
+  protected effectiveMaxTokens(model: string, requested: number): number {
     if (REASONING_MODELS.test(model)) {
       return Math.min(requested * 4, 16384);
     }
@@ -29,7 +45,7 @@ export class OpenAIAdapter implements LLMAdapter {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 240_000);
 
-    const url = `${this.baseUrl}/chat/completions`;
+    const url = this.buildChatUrl(options.model);
     const effectiveMax = this.effectiveMaxTokens(options.model, options.maxTokens ?? 4096);
     const fetchStart = Date.now();
 
@@ -37,10 +53,7 @@ export class OpenAIAdapter implements LLMAdapter {
     try {
       res = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
+        headers: this.buildHeaders(apiKey),
         body: JSON.stringify({
           model: options.model,
           messages: options.messages,
@@ -52,17 +65,17 @@ export class OpenAIAdapter implements LLMAdapter {
       });
     } catch (err: unknown) {
       clearTimeout(timeout);
-      if (err instanceof Error && err.name === 'AbortError') throw new Error('OpenAI API request timed out after 240s');
+      if (err instanceof Error && err.name === 'AbortError') throw new Error(`${this.label} API request timed out after 240s`);
       throw err;
     } finally {
       clearTimeout(timeout);
     }
 
-    logger.info({ model: options.model, durationMs: Date.now() - fetchStart, httpStatus: res.status }, 'OpenAI API response');
+    logger.info({ model: options.model, durationMs: Date.now() - fetchStart, httpStatus: res.status }, `${this.label} API response`);
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`OpenAI API error (${res.status}): ${body}`);
+      throw new Error(`${this.label} API error (${res.status}): ${body}`);
     }
 
     const data = await res.json() as Record<string, unknown>;
@@ -100,12 +113,9 @@ export class OpenAIAdapter implements LLMAdapter {
 
     let res: Response;
     try {
-      res = await fetch(`${this.baseUrl}/chat/completions`, {
+      res = await fetch(this.buildChatUrl(options.model), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
+        headers: this.buildHeaders(apiKey),
         body: JSON.stringify({
           model: options.model,
           messages: options.messages,
@@ -117,13 +127,13 @@ export class OpenAIAdapter implements LLMAdapter {
       });
     } catch (err: unknown) {
       clearTimeout(timeout);
-      if (err instanceof Error && err.name === 'AbortError') throw new Error('OpenAI API stream request timed out after 240s');
+      if (err instanceof Error && err.name === 'AbortError') throw new Error(`${this.label} API stream request timed out after 240s`);
       throw err;
     }
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`OpenAI API error (${res.status}): ${body}`);
+      throw new Error(`${this.label} API error (${res.status}): ${body}`);
     }
 
     let usage: LLMUsage = { inputTokens: 0, outputTokens: 0 };

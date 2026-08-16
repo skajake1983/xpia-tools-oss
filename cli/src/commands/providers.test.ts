@@ -65,9 +65,10 @@ describe('providers command', () => {
     expect(log).toHaveBeenCalled();
   });
 
-  it('notes when a preset needs an adapter', () => {
+  it('adds the anthropic preset without an adapter warning', () => {
     const log = vi.fn();
     runProvidersAdd('anthropic', log);
-    expect(log).toHaveBeenCalledWith(expect.stringMatching(/needs an adapter/));
+    expect(loadConfig().providers.map((p) => p.id)).toContain('anthropic');
+    expect(log).not.toHaveBeenCalledWith(expect.stringMatching(/needs an adapter/));
   });
 });

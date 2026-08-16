@@ -29,9 +29,6 @@ export function runProvidersAdd(key: string, log: (s: string) => void = console.
   saveConfig(cfg);
   const modelNote = preset.models.length ? ` with model(s): ${preset.models.map((m) => m.id).join(', ')}` : '';
   log(`Added provider "${preset.provider.id}"${modelNote}.`);
-  if (preset.needsAdapter) {
-    log('This provider needs an adapter that ships with the provider update; it is configured but not yet callable.');
-  }
   if (preset.note) log('Note: ' + preset.note);
   log(`Set the API key via env var:  ${keyEnvVar(preset.provider)}`);
 }

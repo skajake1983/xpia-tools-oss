@@ -13,10 +13,11 @@ import {
 
 describe('Prompt Config', () => {
   describe('RESEARCH_FRAMING', () => {
-    it('should have prompts for all three providers', () => {
+    it('should have prompts for all providers', () => {
       expect(RESEARCH_FRAMING.openai).toBeTruthy();
       expect(RESEARCH_FRAMING.google).toBeTruthy();
       expect(RESEARCH_FRAMING.xai).toBeTruthy();
+      expect(RESEARCH_FRAMING.anthropic).toBeTruthy();
     });
 
     it('should set default to openai', () => {
@@ -116,9 +117,9 @@ describe('Prompt Config', () => {
   });
 
   describe('getPromptRegistry', () => {
-    it('returns all 13 editable prompt entries', () => {
+    it('returns all editable prompt entries', () => {
       const registry = getPromptRegistry();
-      expect(registry.length).toBe(16);
+      expect(registry.length).toBe(17);
     });
 
     it('every entry has required fields', () => {
@@ -149,7 +150,7 @@ describe('Prompt Config', () => {
   describe('getAllPrompts', () => {
     it('returns entries with currentValue and isOverridden fields', async () => {
       const all = await getAllPrompts();
-      expect(all.length).toBe(16);
+      expect(all.length).toBe(17);
       for (const p of all) {
         expect(typeof p.currentValue).toBe('string');
         expect(typeof p.isOverridden).toBe('boolean');
