@@ -31,9 +31,9 @@ jobs:
           {
             echo "NOTES<<EOF"
 
-            FEATURES=$(git log "$RANGE" --pretty=format:"%s" --grep="^feat" | sed 's/^feat[:(]//' | sed 's/^[[:space:]]*/- /')
-            FIXES=$(git log "$RANGE" --pretty=format:"%s" --grep="^fix" | sed 's/^fix[:(]//' | sed 's/^[[:space:]]*/- /')
-            CHORES=$(git log "$RANGE" --pretty=format:"%s" --grep="^chore" | sed 's/^chore[:(]//' | sed 's/^[[:space:]]*/- /')
+            FEATURES=$(git log "$RANGE" --pretty=format:"%s" --grep="^feat" | sed -E 's/^feat(\([^)]*\))?!?: *//' | sed 's/^[[:space:]]*/- /')
+            FIXES=$(git log "$RANGE" --pretty=format:"%s" --grep="^fix" | sed -E 's/^fix(\([^)]*\))?!?: *//' | sed 's/^[[:space:]]*/- /')
+            CHORES=$(git log "$RANGE" --pretty=format:"%s" --grep="^chore" | sed -E 's/^chore(\([^)]*\))?!?: *//' | sed 's/^[[:space:]]*/- /')
 
             if [ -n "$FEATURES" ]; then
               echo "### Features"
