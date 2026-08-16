@@ -51,14 +51,13 @@ npm run dev -- list techniques      # also: types | layouts | categories | evasi
 Add a provider, set its API key via environment variable, then pass `--model`.
 
 ```bash
-npm run dev -- providers add openai          # presets: openai, google, xai, openrouter, ollama, lmstudio, azure-ai, ...
+npm run dev -- providers add openai          # presets: openai, google, anthropic, azure-openai, xai, openrouter, ollama, lmstudio, azure-ai
 $env:XPIA_OPENAI_API_KEY = "sk-..."          # keys come from env only — never written to disk
 npm run dev -- generate --type docx --technique di-ignore-previous --model gpt-4o-mini --out ./out
 ```
 
-- **Works today** (OpenAI-compatible + Google): OpenAI, xAI, OpenRouter, Ollama, LM Studio,
-  Azure AI Foundry (OpenAI-compatible endpoint), Google Gemini.
-- **Configured but awaiting their adapters:** Anthropic (Claude), Azure OpenAI (native).
+- **Works today:** OpenAI, xAI, OpenRouter, Ollama, LM Studio, Azure AI Foundry
+  (OpenAI-compatible endpoint), Google Gemini, Anthropic (Claude), and Azure OpenAI (native).
 - Local providers (Ollama, LM Studio) need no key.
 
 Config lives at `~/.xpia/config.json` (override with `XPIA_CONFIG_PATH`). Manage it with

@@ -38,9 +38,9 @@ XPIA Tools generates realistic documents, payloads, and web pages containing pro
 - **Image Generation** — PNG, SVG, JPG, WebP, and GIF with 6 layout styles (dashboard, report, infographic, email preview, timeline, comparison), QR code support, and LLM-enhanced content
 - **Payload Generation** — Targeted prompt-injection payloads across categories and severity levels with evasion modifiers (JSON/text output)
 - **Web Page Hosting** — Generate and publish XPIA test pages to Azure Blob Storage with unique slugs
-- **Multi-Provider LLM Gateway** — Pluggable adapter architecture supporting OpenAI and Google (Gemini) with per-user API key management
+- **Multi-Provider LLM Gateway** — Pluggable adapter architecture supporting OpenAI (and OpenAI-compatible endpoints), Google (Gemini), Anthropic (Claude), and Azure OpenAI, with per-user API key management
 - **Prompt Templates** — Admin-managed system/user prompt customization per generation action
-- **Admin Console** — User management, provider/model config, invite codes, usage metrics, prompt templates, and audit log
+- **Admin Console** — User management, provider/model config with a one-click integration catalog, invite codes, usage metrics, prompt templates, and audit log
 - **Platform Metrics** — All-time, monthly, and year-to-date tracking of tokens, documents, payloads, QR codes, web pages, and custom actions
 - **Maintenance Mode** — Admin-controlled downtime page with custom messaging
 - **Audit Log** — Immutable record of all admin actions with 90-day auto-retention via CosmosDB TTL
@@ -82,7 +82,7 @@ XPIA Tools generates realistic documents, payloads, and web pages containing pro
 │       ├── routes/         # Express route handlers
 │       └── services/       # Business logic & LLM adapters
 │           └── llm/
-│               └── adapters/ # OpenAI & Google adapters
+│               └── adapters/ # LLM provider adapters (OpenAI, Google, Anthropic, Azure)
 ├── shared/                 # Shared types between client & server
 ├── static-pages/           # Static HTML fallback pages (maintenance, etc.)
 ├── infra/                  # Bicep IaC modules
@@ -97,7 +97,7 @@ XPIA Tools generates realistic documents, payloads, and web pages containing pro
 
 - **Node.js** 20.x
 - **Azure Cosmos DB** emulator (local dev) or an Azure Cosmos DB account
-- **LLM API Keys** — at least one of: OpenAI API key, Google AI (Gemini) API key
+- **LLM API Keys** — at least one provider key: OpenAI (or an OpenAI-compatible endpoint), Google AI (Gemini), or Anthropic (Claude)
 
 ### Installation
 
@@ -269,8 +269,10 @@ flowchart TD
     SPA -->|"/api"| API["Express API (Node.js / TypeScript)"]
     API --> DB[("Azure Cosmos DB (NoSQL)")]
     API --> GW["LLM Gateway (provider / adapter)"]
-    GW --> OAI["OpenAI"]
+    GW --> OAI["OpenAI / compatible"]
     GW --> GEM["Google AI (Gemini)"]
+    GW --> ANT["Anthropic (Claude)"]
+    GW --> AZ["Azure OpenAI"]
     API --> BLOB[("Azure Blob Storage (generated pages)")]
     API --> ACS["Azure Communication Services (email)"]
     API -.->|"JWT + 2FA, AES-256-GCM keys"| SEC["Security layer"]
@@ -290,6 +292,8 @@ flowchart TD
                     ├──────────────┤
                     │  OpenAI      │
                     │  Google AI   │
+                    │  Anthropic   │
+                    │  Azure OpenAI│
                     └──────────────┘
 ```
 
