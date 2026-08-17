@@ -4,22 +4,68 @@ on:
   push:
     tags:
       - 'v*'
+  # Manual build-only dry run: builds the installer on a clean Windows runner and
+  # skips every publish step, so the CI build can be validated without a release.
+  workflow_dispatch: {}
 
 permissions:
   contents: write
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    # Windows is required: the installer is NSIS, and the app bundles sharp's
+    # native win32-x64 binaries (installed by `npm ci` on this runner).
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Generate release notes
-        id: notes
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+            desktop/package-lock.json
+
+      - name: Verify package version matches tag
+        if: github.event_name == 'push'
+        shell: bash
         run: |
-          # Get the previous tag
+          TAG="${GITHUB_REF_NAME}"
+          VER=$(node -p "require('./desktop/package.json').version")
+          if [ "v$VER" != "$TAG" ]; then
+            echo "::error::desktop/package.json is v$VER but the tag is $TAG — bump versions before tagging."
+            exit 1
+          fi
+
+      - name: Install server dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Install client dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Install desktop dependencies
+        working-directory: ./desktop
+        run: npm ci
+
+      # Builds server + client, then the NSIS installer. `--publish never` keeps
+      # electron-builder from uploading — the release step below owns publishing.
+      - name: Build Windows installer
+        working-directory: ./desktop
+        run: npm run dist -- --publish never
+
+      - name: Generate release notes
+        if: github.event_name == 'push'
+        id: notes
+        shell: bash
+        run: |
+          # Previous tag for the changelog range
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -z "$PREV_TAG" ]; then
             RANGE="HEAD"
@@ -27,7 +73,7 @@ jobs:
             RANGE="${PREV_TAG}..HEAD"
           fi
 
-          # Build categorized release notes from conventional commits
+          # Categorized notes from conventional commits
           {
             echo "NOTES<<EOF"
 
@@ -54,8 +100,15 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Create GitHub Release
+      # Creates (or updates) the release for the tag and attaches the three
+      # auto-update artifacts. The hyphenated filenames match latest.yml exactly.
+      - name: Create GitHub Release with installer
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           body: ${{ steps.notes.outputs.NOTES }}
+          files: |
+            desktop/release/XPIA-Tools-Setup-*.exe
+            desktop/release/XPIA-Tools-Setup-*.exe.blockmap
+            desktop/release/latest.yml
