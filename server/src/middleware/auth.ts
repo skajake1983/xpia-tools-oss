@@ -14,7 +14,22 @@ export interface AuthRequest extends Request {
   correlationId?: string;
 }
 
+/**
+ * Fixed identity for the standalone local desktop build (single-user, no login).
+ * The desktop app seeds a user record with this id and sets XPIA_LOCAL_MODE=1.
+ */
+export const LOCAL_USER_ID = 'local-user';
+
 export async function authMiddleware(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  // Standalone desktop mode: no accounts, no JWT — act as the single local user.
+  // Default OFF; only active when the desktop app sets XPIA_LOCAL_MODE=1. The Azure
+  // web deployment and the CLI never set this, so their behaviour is unchanged.
+  if (process.env.XPIA_LOCAL_MODE === '1') {
+    req.user = { userId: LOCAL_USER_ID, email: 'local@localhost' };
+    next();
+    return;
+  }
+
   // Read access token from httpOnly cookie (primary) or Authorization header (fallback)
   const tokenFromCookie = req.cookies?.access_token;
   const authHeader = req.headers.authorization;

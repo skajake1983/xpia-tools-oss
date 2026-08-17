@@ -14,6 +14,7 @@ export default defineConfig({
         'src/**/*.d.ts',
         'src/test-setup.ts',
         'src/index.ts', // server bootstrap / wiring — exercised end-to-end, not unit tested
+        'src/create-local-app.ts', // desktop local bootstrap / wiring — exercised end-to-end, not unit tested
         'src/db/repositories/types.ts', // interface declarations only
         'src/db/repositories/cosmos/**', // live Cosmos integration; unit tests run against the mock repos
       ],
