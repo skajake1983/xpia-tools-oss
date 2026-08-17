@@ -10,8 +10,19 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-08-17
+
+### Added
+
+- Generated web pages now persist across desktop restarts (previously they were cleared on
+  exit), alongside providers, models, API keys, and prompt edits.
+
 ### Fixed
 
+- Much smaller, faster Windows installer — the desktop build no longer bundles the Cosmos
+  and Application Insights / OpenTelemetry SDKs it never loads, cutting the shipped file
+  count by ~64% (46,916 → 16,751 files) and the installer from 156 MB to 115 MB. This fixes
+  the installer appearing to stall near the end while unpacking tens of thousands of files.
 - Desktop installer filename is now space-free (`XPIA-Tools-Setup-<version>.exe`) so the
   auto-update asset name matches the generated `latest.yml`, keeping GitHub-hosted updates
   reliable.
@@ -61,7 +72,8 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 - Developer tooling: ESLint + Prettier, test coverage reporting with regression thresholds, and
   CI that lints, builds, and tests the server, client, and CLI.
 
-[Unreleased]: https://github.com/skajake1983/xpia-tools-oss/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/skajake1983/xpia-tools-oss/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.2.1
 [1.2.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.2.0
 [1.1.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.1.0
 [1.0.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.0.0
