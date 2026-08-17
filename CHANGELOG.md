@@ -10,6 +10,23 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-17
+
+### Added
+
+- **Export a generated web page's HTML** — new "Copy page HTML" and "Download .html"
+  actions on the Web Pages screen, so a page can be hosted anywhere the target can reach
+  (your own server, a static host, or a tunnel), not just the local preview URL.
+- **Serve pages on your local network** — an opt-in, off-by-default toggle starts a
+  read-only listener so another device (or a local / self-hosted AI you're testing) can
+  load a generated page at `http://<your-lan-ip>:43120/<id>`. The listener serves page
+  HTML only; the app's admin, API keys, and generation endpoints stay bound to localhost.
+
+### Changed
+
+- The desktop's local server now uses a stable port, so copied page URLs stay valid across
+  app restarts.
+
 ## [1.2.1] - 2026-08-17
 
 ### Added
@@ -72,7 +89,8 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 - Developer tooling: ESLint + Prettier, test coverage reporting with regression thresholds, and
   CI that lints, builds, and tests the server, client, and CLI.
 
-[Unreleased]: https://github.com/skajake1983/xpia-tools-oss/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/skajake1983/xpia-tools-oss/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.3.0
 [1.2.1]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.2.1
 [1.2.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.2.0
 [1.1.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.1.0

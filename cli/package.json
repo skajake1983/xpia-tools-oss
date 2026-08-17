@@ -1,6 +1,6 @@
 {
   "name": "@xpia/cli",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "private": true,
   "description": "XPIA Tools datagen CLI — generate XPIA test documents, images, and payloads from the terminal (no web UI).",
   "license": "MIT",
