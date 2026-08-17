@@ -26,6 +26,7 @@ import type {
   PromptOverrideDoc,
   PromptTemplateDoc,
   UserActivePromptDoc,
+  PageDoc,
 } from './db/repositories/types';
 
 import authRoutes from './routes/auth';
@@ -43,8 +44,9 @@ import feedbackRoutes from './routes/feedback';
 import promptTemplateRoutes from './routes/prompt-templates';
 
 // ── Local persistence snapshot ──────────────────────────────────────────
-// The user's configuration that must survive restarts. Users/auth/usage/
-// content are intentionally ephemeral (the local admin is re-seeded each run).
+// The user's configuration and generated web pages that must survive restarts.
+// Users/auth/usage and generated documents remain ephemeral (the local admin
+// is re-seeded each run).
 
 export interface LocalState {
   providers: ProviderDoc[];
@@ -53,6 +55,7 @@ export interface LocalState {
   overrides: PromptOverrideDoc[];
   templates: PromptTemplateDoc[];
   activePrompts: UserActivePromptDoc[];
+  pages: PageDoc[];
 }
 
 /** Read the persistable state out of the repositories. */
@@ -65,6 +68,7 @@ export async function dumpState(repos: Repositories): Promise<LocalState> {
     // Only user-created templates — system defaults are re-seeded each run.
     templates: (await repos.config.getTemplatesForUser(LOCAL_USER_ID)).filter((t) => !t.isSystem),
     activePrompts: await repos.config.getActivePrompts(LOCAL_USER_ID),
+    pages: await repos.pages.listByUser(LOCAL_USER_ID),
   };
 }
 
@@ -76,6 +80,7 @@ export async function restoreState(repos: Repositories, state: Partial<LocalStat
   for (const t of state.templates ?? []) await repos.config.createTemplate(t);
   for (const a of state.activePrompts ?? []) await repos.config.setActivePrompt(a);
   for (const k of state.apiKeys ?? []) await repos.apiKeys.create(k);
+  for (const p of state.pages ?? []) await repos.pages.create(p);
 }
 
 // ── Bootstrap ───────────────────────────────────────────────────────────
