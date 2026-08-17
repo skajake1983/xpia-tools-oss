@@ -10,6 +10,17 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-17
+
+### Added
+
+- **Automatic updates for the Windows desktop app** — the installed app checks GitHub
+  Releases on launch (and every 6 hours), downloads new versions in the background, and
+  prompts to restart to apply them (via `electron-updater`). Downloads are verified by
+  SHA-512 over HTTPS; on our per-user install, updates apply silently with no UAC
+  prompt. Additive and desktop-only — the CLI and the Azure web deployment are
+  unaffected.
+
 ## [1.1.0] - 2026-08-17
 
 ### Added
@@ -44,6 +55,7 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 - Developer tooling: ESLint + Prettier, test coverage reporting with regression thresholds, and
   CI that lints, builds, and tests the server, client, and CLI.
 
-[Unreleased]: https://github.com/skajake1983/xpia-tools-oss/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/skajake1983/xpia-tools-oss/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.2.0
 [1.1.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.1.0
 [1.0.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.0.0
