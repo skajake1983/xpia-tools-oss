@@ -67,8 +67,11 @@ export async function seedDatabase(repos: Repositories): Promise<void> {
   logger.info('Seed: started');
   const ts = new Date().toISOString();
   try {
-    // Clean up removed providers and their models
-    const REMOVED_PROVIDERS = ['anthropic'];
+    // Clean up providers that are no longer supported and their models.
+    // (Anthropic was here before its adapter shipped; it is now a first-class
+    // provider, so the list is empty — leave stale-provider ids here only if a
+    // provider is genuinely removed from the product.)
+    const REMOVED_PROVIDERS: string[] = [];
     for (const pid of REMOVED_PROVIDERS) {
       const provider = await repos.config.getProvider(pid);
       if (provider) {
