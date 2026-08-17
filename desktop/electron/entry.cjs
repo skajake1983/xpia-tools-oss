@@ -5,7 +5,7 @@
 // package (a path string) and the API comes back undefined. So this file stays
 // plain JS. In development it transpiles the server's TypeScript on the fly via
 // tsx; in the packaged app it requires the precompiled server (server/dist),
-// shipped alongside its node_modules under resources/ — no tsx, no build step.
+// shipped alongside its trimmed production node_modules under resources/ — no tsx.
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');

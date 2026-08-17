@@ -16,8 +16,9 @@
     "dev": "electron .",
     "typecheck": "tsc --noEmit",
     "build:deps": "cd ../server && npm run build && cd ../client && npm run build",
-    "pack:dir": "npm run build:deps && electron-builder --dir",
-    "dist": "npm run build:deps && electron-builder"
+    "stage": "node scripts/stage-payload.cjs",
+    "pack:dir": "npm run build:deps && npm run stage && electron-builder --dir",
+    "dist": "npm run build:deps && npm run stage && electron-builder"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",

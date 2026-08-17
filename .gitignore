@@ -8,6 +8,7 @@ cli/out/
 
 # Desktop (Electron) build output and local app data
 release/
+desktop/payload/
 .local-data/
 *.db
 .env
