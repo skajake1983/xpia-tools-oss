@@ -1,6 +1,6 @@
 {
   "name": "@xpia/desktop",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "XPIA Tools desktop app — a standalone local document/image/payload generator (Electron).",
   "license": "MIT",
@@ -25,5 +25,8 @@
     "electron-builder": "^25.1.8",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

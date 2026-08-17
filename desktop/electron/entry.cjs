@@ -9,7 +9,7 @@
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { app, BrowserWindow, safeStorage, shell } = require('electron');
+const { app, BrowserWindow, dialog, safeStorage, shell } = require('electron');
 
 // Non-secret env, set before any server module loads. The desktop always runs
 // with dev secret defaults (auth is bypassed locally) plus its own ENCRYPTION_KEY.
@@ -137,12 +137,79 @@ function createWindow(port) {
   });
 }
 
+/**
+ * Auto-update via GitHub Releases (electron-updater). Packaged builds only —
+ * there is no updater in dev, so this never touches the tsx dev path. The app is
+ * distributed unsigned, so integrity rests on the SHA-512 in `latest.yml` over
+ * GitHub HTTPS rather than a publisher signature; electron-updater proceeds
+ * because there is no signature to verify. Any failure (offline, no release yet,
+ * rate limit) is swallowed so an update check can never take down the app.
+ */
+function setupAutoUpdates() {
+  if (!app.isPackaged) return;
+  let autoUpdater;
+  try {
+    ({ autoUpdater } = require('electron-updater'));
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[xpia-desktop] auto-update unavailable', err && err.message);
+    return;
+  }
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.logger = {
+    info: () => {},
+    debug: () => {},
+    // eslint-disable-next-line no-console
+    warn: (m) => console.warn('[updater]', m),
+    // eslint-disable-next-line no-console
+    error: (m) => console.error('[updater]', m),
+  };
+
+  autoUpdater.on('error', (err) => {
+    // eslint-disable-next-line no-console
+    console.error('[xpia-desktop] update check failed', (err && err.message) || err);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    if (!win || win.isDestroyed()) return;
+    dialog
+      .showMessageBox(win, {
+        type: 'info',
+        buttons: ['Restart now', 'Later'],
+        defaultId: 0,
+        cancelId: 1,
+        title: 'Update ready',
+        message: `XPIA Tools ${info.version} is ready to install.`,
+        detail: 'Restart to finish updating. Your providers, API keys, and prompt edits are kept.',
+      })
+      .then(({ response }) => {
+        // (isSilent, isForceRunAfter): silent is safe for our per-user install
+        // (no UAC), so the update applies without the NSIS wizard, then relaunches.
+        if (response === 0) autoUpdater.quitAndInstall(true, true);
+      })
+      .catch(() => {});
+  });
+
+  const check = () =>
+    autoUpdater.checkForUpdates().catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error('[xpia-desktop] update check error', (err && err.message) || err);
+    });
+
+  check();
+  // Re-check periodically for long-lived sessions (every 6 hours).
+  setInterval(check, 6 * 60 * 60 * 1000).unref();
+}
+
 app.whenReady().then(async () => {
   try {
     const port = await startLocalServer();
     // eslint-disable-next-line no-console
     console.log(`[xpia-desktop] local server ready on 127.0.0.1:${port}`);
     createWindow(port);
+    setupAutoUpdates();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow(port);
     });

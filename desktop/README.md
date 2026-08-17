@@ -37,8 +37,38 @@ Output: `desktop/release/XPIA Tools-Setup-<version>.exe`. For quicker iteration,
 `npm run pack:dir` produces an unpacked app under `desktop/release/win-unpacked/`.
 
 The installer is **unsigned** — Windows SmartScreen warns about an unknown
-publisher. To sign for distribution, provide a Windows code-signing certificate to
-electron-builder (`CSC_LINK` / `CSC_KEY_PASSWORD`).
+publisher on the first manual download. To sign for distribution, provide a Windows
+code-signing certificate to electron-builder (`CSC_LINK` / `CSC_KEY_PASSWORD`).
+
+## Automatic updates
+
+The installed app updates itself from **GitHub Releases** via `electron-updater`
+(configured by the `publish:` block in `electron-builder.yml`). On launch and every
+6 hours it checks for a newer release, downloads it in the background, and prompts to
+restart; on the per-user install the update applies silently with no UAC prompt.
+Update checks run only in the packaged app (never in dev via `tsx`), and any failure
+(offline, no release yet) is swallowed so it can't disrupt the app.
+
+Because the app is unsigned, update **integrity** rests on the SHA-512 checksum in
+`latest.yml` over GitHub HTTPS rather than a publisher signature — `electron-updater`
+skips the signature check when no `win.publisherName` is set. Do **not** set
+`publisherName` without a matching certificate, or every update is rejected. And since
+`electron-updater` downloads without the Mark-of-the-Web, SmartScreen does **not**
+warn during an auto-update — only on the first manual download.
+
+### Cutting a release (so auto-update keeps working)
+
+Each release **must** include all three artifacts from the **same** `npm run dist`
+build, or clients hit a `sha512 checksum mismatch`:
+
+- `XPIA Tools-Setup-<version>.exe` — the installer
+- `XPIA Tools-Setup-<version>.exe.blockmap` — enables delta (changed-block) downloads
+- `latest.yml` — the update manifest (version + checksum)
+
+Bump the version, push a `v<version>` tag (the Release workflow drafts the notes),
+then upload those three files from `desktop/release/` to the GitHub Release.
+Auto-update is forward-looking: a build only receives versions newer than itself, so
+the **first** updater-enabled version has to be installed manually once.
 
 ## How it works
 

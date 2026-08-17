@@ -21,6 +21,14 @@ extraResources:
   - from: ../client/dist
     to: client/dist
 
+# Auto-update feed. electron-builder generates `latest.yml` (the update manifest)
+# next to the installer and embeds `app-update.yml` in the app so electron-updater
+# knows to look here. The repo is public, so clients need no token to check/download.
+publish:
+  provider: github
+  owner: skajake1983
+  repo: xpia-tools-oss
+
 win:
   target:
     - nsis
