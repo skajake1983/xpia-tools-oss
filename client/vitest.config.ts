@@ -22,12 +22,13 @@ export default defineConfig({
       reporter: ['text-summary', 'text'],
       // Regression floor at the current baseline. Client UI coverage is low
       // because the React pages/components aren't unit-tested yet; raising this
-      // meaningfully needs component tests (tracked follow-up).
+      // meaningfully needs component tests (tracked follow-up). Numbers reflect
+      // vitest 4's coverage computation, which counts the untested UI.
       thresholds: {
-        statements: 4,
-        branches: 60,
-        functions: 15,
-        lines: 4,
+        statements: 6,
+        branches: 5,
+        functions: 5,
+        lines: 6,
       },
     },
   },

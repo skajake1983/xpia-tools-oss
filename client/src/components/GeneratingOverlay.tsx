@@ -10,7 +10,7 @@ interface GeneratingOverlayProps {
 
 export default function GeneratingOverlay({ active, label = 'content' }: GeneratingOverlayProps) {
   const [elapsed, setElapsed] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   useEffect(() => {
     if (active) {

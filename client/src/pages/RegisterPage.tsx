@@ -31,7 +31,7 @@ export default function RegisterPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
   const [inviteRequired, setInviteRequired] = useState<boolean | null>(null);
-  const lookupTimer = useRef<ReturnType<typeof setTimeout>>();
+  const lookupTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const lookupInviteCode = useCallback(async (code: string) => {
     if (code.length < 4) return;
