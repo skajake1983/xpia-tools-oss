@@ -108,13 +108,22 @@ async function startLocalServer() {
 
   const expressApp = createLocalApp({ clientDistPath: resolveClientDist(), onWrite: save });
 
+  // Prefer a stable port so copied page URLs stay valid across launches; fall back
+  // to nearby ports, then any free port, if one is already in use.
+  const candidates = [43110, 43111, 43112, 43113, 0];
   return new Promise((resolve, reject) => {
-    const server = expressApp.listen(0, '127.0.0.1', () => {
-      const addr = server.address();
-      if (addr && typeof addr === 'object') resolve(addr.port);
-      else reject(new Error('failed to bind a local port'));
-    });
-    server.on('error', reject);
+    const tryPort = (i) => {
+      const server = expressApp.listen(candidates[i], '127.0.0.1', () => {
+        const addr = server.address();
+        if (addr && typeof addr === 'object') resolve(addr.port);
+        else reject(new Error('failed to bind a local port'));
+      });
+      server.once('error', (err) => {
+        if (err && err.code === 'EADDRINUSE' && i < candidates.length - 1) tryPort(i + 1);
+        else reject(err);
+      });
+    };
+    tryPort(0);
   });
 }
 

@@ -485,6 +485,7 @@ export const api = {
           slug: string;
           title: string;
           technique: string;
+          content: string;
           isActive: boolean;
           createdAt: string;
         }[];

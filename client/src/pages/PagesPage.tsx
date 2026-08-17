@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, FormEvent } from 'react';
 import { api } from '../lib/api';
-import { Globe, Plus, ExternalLink, ToggleLeft, ToggleRight, Trash2, ChevronDown, Copy, Check, Sparkles, Loader2 } from 'lucide-react';
+import { Globe, Plus, ExternalLink, ToggleLeft, ToggleRight, Trash2, ChevronDown, Copy, Check, Sparkles, Loader2, Code, Download } from 'lucide-react';
 import LlmModelSelector from '../components/LlmModelSelector';
 import HelpTip from '../components/HelpTip';
 import { useLlmPreference, formatCreditError } from '../hooks/useLlmPreference';
@@ -21,6 +21,7 @@ interface Page {
   slug: string;
   title: string;
   technique: string;
+  content: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -38,6 +39,7 @@ export default function PagesPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState('');
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [copiedHtmlSlug, setCopiedHtmlSlug] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const { enabled: llmEnabled, setEnabled: setLlmEnabled, selectedModelId, setSelectedModelId, hasExplicitPreference } = useLlmPreference('pages');
   const [publicPagesDomain, setPublicPagesDomain] = useState('');
@@ -173,6 +175,26 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
     navigator.clipboard.writeText(getPageUrl(slug));
     setCopiedSlug(slug);
     setTimeout(() => setCopiedSlug(null), 2000);
+  };
+
+  // Copy/export the page's raw HTML so it can be hosted anywhere the target can reach
+  // (own server, static host, or a tunnel) — not just the local preview URL.
+  const copyHtml = (page: Page) => {
+    navigator.clipboard.writeText(page.content);
+    setCopiedHtmlSlug(page.slug);
+    setTimeout(() => setCopiedHtmlSlug(null), 2000);
+  };
+
+  const downloadHtml = (page: Page) => {
+    const blob = new Blob([page.content], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${page.slug}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   return (
@@ -374,6 +396,20 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
                   >
                     <ExternalLink className="w-4 h-4" />
                   </a>
+                  <button
+                    onClick={() => copyHtml(page)}
+                    className="p-2 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                    title="Copy page HTML"
+                  >
+                    {copiedHtmlSlug === page.slug ? <Check className="w-4 h-4 text-green-500" /> : <Code className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => downloadHtml(page)}
+                    className="p-2 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                    title="Download .html"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => handleToggle(page.id)}
                     className="p-2 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
