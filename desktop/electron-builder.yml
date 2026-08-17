@@ -37,4 +37,7 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  artifactName: ${productName}-Setup-${version}.${ext}
+  # Space-free on purpose: electron-updater's latest.yml refers to the installer as
+  # `XPIA-Tools-Setup-<version>.exe`, and GitHub rewrites spaces in asset names — so a
+  # `${productName}` (spaced) filename would not match the manifest and break updates.
+  artifactName: XPIA-Tools-Setup-${version}.${ext}

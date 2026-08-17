@@ -10,6 +10,12 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 
 ## [Unreleased]
 
+### Fixed
+
+- Desktop installer filename is now space-free (`XPIA-Tools-Setup-<version>.exe`) so the
+  auto-update asset name matches the generated `latest.yml`, keeping GitHub-hosted updates
+  reliable.
+
 ## [1.2.0] - 2026-08-17
 
 ### Added
