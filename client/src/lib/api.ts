@@ -513,6 +513,19 @@ export const api = {
       request<void>(`/pages/${id}`, { method: 'DELETE' }),
   },
 
+  // Desktop-only (feature-detected — 404s on the web app): toggle the read-only
+  // LAN page server so other devices on the network can load generated pages.
+  local: {
+    network: {
+      get: () => request<{ enabled: boolean; url: string | null }>('/local/network'),
+      set: (enabled: boolean) =>
+        request<{ enabled: boolean; url: string | null }>('/local/network', {
+          method: 'POST',
+          body: JSON.stringify({ enabled }),
+        }),
+    },
+  },
+
   // === User API Keys ===
   keys: {
     list: () =>

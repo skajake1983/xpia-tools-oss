@@ -9,6 +9,7 @@
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const os = require('os');
 const { app, BrowserWindow, dialog, safeStorage, shell } = require('electron');
 
 // Non-secret env, set before any server module loads. The desktop always runs
@@ -93,9 +94,74 @@ function resolveEncryptionKey() {
 
 let win = null;
 
+// ── LAN page server (read-only, opt-in) ──────────────────────────────────
+// A second listener bound to 0.0.0.0 that serves ONLY generated page HTML by slug, so
+// other devices on the network can load a page. The main app + admin API stay on
+// 127.0.0.1. Off by default; the preference persists in network.json. Uses a port
+// outside the loopback candidate range so the two servers never collide.
+const LAN_PAGE_PORT = 43120;
+let lanServer = null;
+let makePublicPageApp = null;
+
+function primaryLanIp() {
+  const ifaces = os.networkInterfaces();
+  for (const name of Object.keys(ifaces)) {
+    for (const ni of ifaces[name] || []) {
+      if (ni.family === 'IPv4' && !ni.internal) return ni.address;
+    }
+  }
+  return null;
+}
+
+function lanUrlBase() {
+  const ip = primaryLanIp();
+  return ip ? `http://${ip}:${LAN_PAGE_PORT}` : null;
+}
+
+function loadNetworkPref(dataDir) {
+  try {
+    const f = path.join(dataDir, 'network.json');
+    if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, 'utf8'));
+  } catch {
+    /* ignore */
+  }
+  return { lanEnabled: false };
+}
+
+function saveNetworkPref(dataDir, pref) {
+  try {
+    fs.writeFileSync(path.join(dataDir, 'network.json'), JSON.stringify(pref, null, 2));
+  } catch {
+    /* best effort */
+  }
+}
+
+function startLanServer() {
+  if (lanServer || !makePublicPageApp) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = makePublicPageApp().listen(LAN_PAGE_PORT, '0.0.0.0', () => {
+      lanServer = s;
+      resolve();
+    });
+    s.once('error', reject);
+  });
+}
+
+function stopLanServer() {
+  return new Promise((resolve) => {
+    if (!lanServer) return resolve();
+    lanServer.close(() => {
+      lanServer = null;
+      resolve();
+    });
+  });
+}
+
 async function startLocalServer() {
   process.env.ENCRYPTION_KEY = resolveEncryptionKey();
-  const { bootstrapLocal, createLocalApp, dumpState } = loadServerModule();
+  const serverMod = loadServerModule();
+  const { bootstrapLocal, createLocalApp, dumpState } = serverMod;
+  makePublicPageApp = serverMod.createPublicPageApp;
 
   // Persist the user's config (providers/models/keys/prompt edits) across restarts.
   const dataDir = app.getPath('userData');
@@ -106,7 +172,32 @@ async function startLocalServer() {
       .catch(() => {});
   }, 400);
 
-  const expressApp = createLocalApp({ clientDistPath: resolveClientDist(), onWrite: save });
+  // Opt-in, read-only LAN page serving. The client toggles it via /api/local/network.
+  let netPref = loadNetworkPref(dataDir);
+  const lanControl = {
+    getStatus() {
+      return { enabled: !!lanServer, url: lanServer ? lanUrlBase() : null };
+    },
+    async setEnabled(enabled) {
+      if (enabled) await startLanServer();
+      else await stopLanServer();
+      netPref = { lanEnabled: !!lanServer };
+      saveNetworkPref(dataDir, netPref);
+      return this.getStatus();
+    },
+  };
+
+  const expressApp = createLocalApp({ clientDistPath: resolveClientDist(), onWrite: save, lanControl });
+
+  // Resume LAN serving if it was on last time.
+  if (netPref.lanEnabled) {
+    try {
+      await startLanServer();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[xpia-desktop] LAN page server failed to start', err && err.message);
+    }
+  }
 
   // Prefer a stable port so copied page URLs stay valid across launches; fall back
   // to nearby ports, then any free port, if one is already in use.

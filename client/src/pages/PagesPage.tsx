@@ -44,6 +44,10 @@ export default function PagesPage() {
   const { enabled: llmEnabled, setEnabled: setLlmEnabled, selectedModelId, setSelectedModelId, hasExplicitPreference } = useLlmPreference('pages');
   const [publicPagesDomain, setPublicPagesDomain] = useState('');
   const [maxPages, setMaxPages] = useState(50);
+  const [lanAvailable, setLanAvailable] = useState(false);
+  const [lanEnabled, setLanEnabled] = useState(false);
+  const [lanUrl, setLanUrl] = useState<string | null>(null);
+  const [lanBusy, setLanBusy] = useState(false);
 
   const loadData = async () => {
     try {
@@ -66,7 +70,35 @@ export default function PagesPage() {
     }
   };
 
-  useEffect(() => { loadData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    loadData();
+    loadLanStatus();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Feature-detected: /api/local/network exists only on the desktop build.
+  const loadLanStatus = async () => {
+    try {
+      const net = await api.local.network.get();
+      setLanAvailable(true);
+      setLanEnabled(net.enabled);
+      setLanUrl(net.url);
+    } catch {
+      setLanAvailable(false);
+    }
+  };
+
+  const toggleLan = async () => {
+    setLanBusy(true);
+    try {
+      const net = await api.local.network.set(!lanEnabled);
+      setLanEnabled(net.enabled);
+      setLanUrl(net.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to toggle network serving');
+    } finally {
+      setLanBusy(false);
+    }
+  };
 
   const allCategories = useMemo(() => [...new Set(techniques.map((t) => t.category))], [techniques]);
 
@@ -165,6 +197,7 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
   };
 
   const getPageUrl = (slug: string) => {
+    if (lanEnabled && lanUrl) return `${lanUrl}/${slug}`;
     if (!publicPagesDomain) return `${window.location.origin}/api/pages/public/${slug}`;
     // Sanitize: strip any duplicate protocol prefix (e.g. "https://https://...")
     const cleaned = publicPagesDomain.replace(/^(https?:\/\/)+/, '$1').replace(/\/+$/, '');
@@ -219,6 +252,35 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
             hasExplicitPreference={hasExplicitPreference}
           />
         </div>
+        {lanAvailable && (
+          <div className="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center">
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Serve on local network</span>
+                  <HelpTip text="Serve your generated pages (read-only) to other devices on your local network — useful for testing a local or self-hosted AI. Your providers, API keys, and settings stay private to this machine. Note: cloud AI cannot reach a LAN address, and Windows may ask to allow the app through the firewall the first time." />
+                </div>
+                {lanEnabled && lanUrl ? (
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-0.5 truncate">
+                    Reachable at <code className="font-mono">{lanUrl}/&lt;id&gt;</code> on your network
+                  </p>
+                ) : lanEnabled ? (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">On, but no local network address was detected.</p>
+                ) : (
+                  <p className="text-xs text-gray-400 mt-0.5">Off — pages are reachable only on this machine.</p>
+                )}
+              </div>
+              <button
+                onClick={toggleLan}
+                disabled={lanBusy}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-50 shrink-0"
+                title={lanEnabled ? 'Disable local network serving' : 'Enable local network serving'}
+              >
+                {lanBusy ? <Loader2 className="w-6 h-6 animate-spin" /> : lanEnabled ? <ToggleRight className="w-6 h-6 text-brand-600" /> : <ToggleLeft className="w-6 h-6" />}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       {pages.length >= maxPages && (
         <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">

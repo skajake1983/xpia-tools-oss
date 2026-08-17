@@ -17,6 +17,7 @@ import { createMockRepositories } from './db/repositories';
 import { seedDatabase } from './db/seed';
 import { LOCAL_USER_ID } from './middleware/auth';
 import { correlationIdMiddleware } from './middleware/correlationId';
+import * as pageService from './services/page.service';
 import type {
   Repositories,
   UserDoc,
@@ -136,11 +137,19 @@ export async function bootstrapLocal(repos?: Repositories, opts: BootstrapOption
 
 // ── App factory ─────────────────────────────────────────────────────────
 
+/** Host-provided control for the opt-in, read-only LAN page server (desktop only). */
+export interface LanControl {
+  getStatus(): { enabled: boolean; url: string | null };
+  setEnabled(enabled: boolean): Promise<{ enabled: boolean; url: string | null }>;
+}
+
 export interface LocalAppOptions {
   /** Absolute path to the built React client (client/dist). Omit to serve API only. */
   clientDistPath?: string;
   /** Invoked after each successful mutating (non-GET) /api request, for persistence. */
   onWrite?: () => void;
+  /** When provided (desktop), mounts /api/local/network to toggle LAN page serving. */
+  lanControl?: LanControl;
 }
 
 /** Build the Express app for local/desktop use (no Cosmos, telemetry, or blob). */
@@ -184,12 +193,74 @@ export function createLocalApp(opts: LocalAppOptions = {}): express.Express {
     res.json({ status: 'ok', mode: 'local', maintenance: false, timestamp: new Date().toISOString() });
   });
 
+  // Desktop-only: read/toggle the opt-in LAN page server. Mounted only when the host
+  // provides a control hook, so it 404s on the cloud app and the client feature-detects.
+  if (opts.lanControl) {
+    const lanControl = opts.lanControl;
+    app.get('/api/local/network', (_req, res) => res.json(lanControl.getStatus()));
+    app.post('/api/local/network', async (req, res) => {
+      try {
+        const status = await lanControl.setEnabled(!!(req.body && req.body.enabled));
+        res.json(status);
+      } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to toggle network serving' });
+      }
+    });
+  }
+
   // Serve the built client and fall back to index.html for SPA routes.
   if (opts.clientDistPath && fs.existsSync(opts.clientDistPath)) {
     const dist = opts.clientDistPath;
     app.use(express.static(dist));
     app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
   }
+
+  return app;
+}
+
+// ── LAN page server (read-only) ─────────────────────────────────────────
+// A separate, minimal app that serves ONLY generated page HTML by slug. The desktop
+// binds it to 0.0.0.0 (opt-in) so other devices on the LAN can load a page — while the
+// full app + admin/keys/generation API above stay on 127.0.0.1. Because local mode
+// bypasses auth, that isolation is what keeps LAN exposure safe: nothing here mounts
+// the authenticated routes.
+
+const PUBLIC_SLUG_RE = /^[a-f0-9-]{8}$/;
+
+export function createPublicPageApp(): express.Express {
+  const app = express();
+  app.disable('x-powered-by');
+
+  app.get('/:slug', async (req, res) => {
+    const slug = req.params.slug;
+    if (!PUBLIC_SLUG_RE.test(slug)) {
+      res.status(400).type('text/plain').send('Invalid page identifier');
+      return;
+    }
+    const page = await pageService.getPageBySlug(slug);
+    if (!page) {
+      res
+        .status(404)
+        .type('text/html')
+        .send(
+          '<!doctype html><meta charset="utf-8"><title>Not found</title>' +
+            '<body style="font-family:system-ui;padding:2rem;color:#334155">This page is not available.</body>',
+        );
+      return;
+    }
+    // Same strict CSP as the in-app public route, so the page renders identically.
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'none'; script-src 'none'; frame-ancestors 'none'",
+    );
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.type('text/html; charset=utf-8').send(page.content);
+  });
+
+  // Everything else is refused — this listener serves page HTML only.
+  app.use((_req, res) => res.status(404).type('text/plain').send('Not found'));
 
   return app;
 }
