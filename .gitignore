@@ -5,6 +5,10 @@ coverage/
 
 # CLI datagen output (default --out ./out)
 cli/out/
+
+# Desktop (Electron) build output and local app data
+release/
+.local-data/
 *.db
 .env
 .env.local

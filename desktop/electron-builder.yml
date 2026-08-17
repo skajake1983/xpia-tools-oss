@@ -1,0 +1,32 @@
+appId: com.xpiatools.desktop
+productName: XPIA Tools
+copyright: Copyright © Jacob Adams
+
+directories:
+  output: release
+  buildResources: build
+
+# The packaged app itself is tiny — just the Electron main. The server (compiled),
+# its node_modules, and the built client ship as resources (outside the asar), so
+# native modules like sharp load without any asar-unpack handling.
+files:
+  - electron/**/*
+  - "!electron/main.ts"
+
+extraResources:
+  - from: ../server/dist
+    to: server/dist
+  - from: ../server/node_modules
+    to: server/node_modules
+  - from: ../client/dist
+    to: client/dist
+
+win:
+  target:
+    - nsis
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-Setup-${version}.${ext}

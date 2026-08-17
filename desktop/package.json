@@ -1,0 +1,29 @@
+{
+  "name": "@xpia/desktop",
+  "version": "1.1.0",
+  "private": true,
+  "description": "XPIA Tools desktop app — a standalone local document/image/payload generator (Electron).",
+  "license": "MIT",
+  "author": "Jacob Adams",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skajake1983/xpia-tools-oss.git",
+    "directory": "desktop"
+  },
+  "main": "electron/entry.cjs",
+  "scripts": {
+    "serve": "tsx src/serve.ts",
+    "dev": "electron .",
+    "typecheck": "tsc --noEmit",
+    "build:deps": "cd ../server && npm run build && cd ../client && npm run build",
+    "pack:dir": "npm run build:deps && electron-builder --dir",
+    "dist": "npm run build:deps && electron-builder"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
