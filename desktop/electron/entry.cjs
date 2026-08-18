@@ -10,7 +10,9 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const os = require('os');
-const { app, BrowserWindow, dialog, safeStorage, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, safeStorage, shell } = require('electron');
+
+const REPO_URL = 'https://github.com/skajake1983/xpia-tools-oss';
 
 // Non-secret env, set before any server module loads. The desktop always runs
 // with dev secret defaults (auth is bypassed locally) plus its own ENCRYPTION_KEY.
@@ -18,6 +20,18 @@ if (!process.env.NODE_ENV) process.env.NODE_ENV = 'development';
 if (!process.env.LOG_LEVEL) process.env.LOG_LEVEL = 'silent';
 process.env.XPIA_LOCAL_MODE = '1';
 if (!process.env.XPIA_NO_LOCAL_DOC_STORE) process.env.XPIA_NO_LOCAL_DOC_STORE = '1';
+
+// A fatal startup error has nowhere visible to go in a GUI app — record it to a file.
+const STARTUP_LOG = path.join(os.tmpdir(), 'xpia-tools-startup.log');
+function logFatal(where, err) {
+  try {
+    fs.writeFileSync(STARTUP_LOG, `[${where}] ${(err && err.stack) || err}\n`);
+  } catch {
+    /* ignore */
+  }
+}
+process.on('uncaughtException', (err) => logFatal('uncaughtException', err));
+process.on('unhandledRejection', (err) => logFatal('unhandledRejection', err));
 
 // ── Inlined persistent store (plain JS so it works in the packaged app) ──
 function loadState(dataDir) {
@@ -93,6 +107,9 @@ function resolveEncryptionKey() {
 }
 
 let win = null;
+let mainServer = null; // the loopback app server (closed on quit)
+let autoUpdater = null; // electron-updater instance (packaged only)
+let manualUpdateCheck = false; // true while a user-triggered "Check for Updates" is pending
 
 // ── LAN page server (read-only, opt-in) ──────────────────────────────────
 // A second listener bound to 0.0.0.0 that serves ONLY generated page HTML by slug, so
@@ -205,6 +222,7 @@ async function startLocalServer() {
   return new Promise((resolve, reject) => {
     const tryPort = (i) => {
       const server = expressApp.listen(candidates[i], '127.0.0.1', () => {
+        mainServer = server;
         const addr = server.address();
         if (addr && typeof addr === 'object') resolve(addr.port);
         else reject(new Error('failed to bind a local port'));
@@ -247,7 +265,6 @@ function createWindow(port) {
  */
 function setupAutoUpdates() {
   if (!app.isPackaged) return;
-  let autoUpdater;
   try {
     ({ autoUpdater } = require('electron-updater'));
   } catch (err) {
@@ -270,9 +287,26 @@ function setupAutoUpdates() {
   autoUpdater.on('error', (err) => {
     // eslint-disable-next-line no-console
     console.error('[xpia-desktop] update check failed', (err && err.message) || err);
+    if (manualUpdateCheck && win && !win.isDestroyed()) {
+      manualUpdateCheck = false;
+      dialog.showMessageBox(win, {
+        type: 'error',
+        title: 'Update check failed',
+        message: 'Could not check for updates.',
+        detail: String((err && err.message) || err),
+      });
+    }
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    if (manualUpdateCheck && win && !win.isDestroyed()) {
+      manualUpdateCheck = false;
+      dialog.showMessageBox(win, { type: 'info', title: 'Check for Updates', message: 'You are on the latest version.' });
+    }
   });
 
   autoUpdater.on('update-downloaded', (info) => {
+    manualUpdateCheck = false;
     if (!win || win.isDestroyed()) return;
     dialog
       .showMessageBox(win, {
@@ -303,17 +337,94 @@ function setupAutoUpdates() {
   setInterval(check, 6 * 60 * 60 * 1000).unref();
 }
 
+/** File → Check for Updates… — gives explicit feedback (up to date / error). */
+function checkForUpdatesManually() {
+  if (!app.isPackaged) {
+    dialog.showMessageBox(win, {
+      type: 'info',
+      title: 'Check for Updates',
+      message: 'Updates are available in the installed app only.',
+    });
+    return;
+  }
+  if (!autoUpdater) return;
+  manualUpdateCheck = true;
+  autoUpdater.checkForUpdates().catch(() => {
+    manualUpdateCheck = false;
+  });
+}
+
+/** Replace Electron's default menu with a sensible app menu (incl. Help → GitHub). */
+function buildAppMenu() {
+  const template = [
+    {
+      label: 'File',
+      submenu: [{ label: 'Check for Updates…', click: () => checkForUpdatesManually() }, { type: 'separator' }, { role: 'quit' }],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'delete' }, // deletes the selected text in an input field
+        { type: 'separator' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+        { role: 'toggleDevTools' },
+      ],
+    },
+    { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'zoom' }, { role: 'close' }] },
+    {
+      role: 'help',
+      submenu: [
+        { label: 'Documentation', click: () => shell.openExternal(`${REPO_URL}#readme`) },
+        { label: 'Report an Issue…', click: () => shell.openExternal(`${REPO_URL}/issues/new`) },
+        { label: 'View Releases', click: () => shell.openExternal(`${REPO_URL}/releases`) },
+        { type: 'separator' },
+        {
+          label: 'About XPIA Tools',
+          click: () =>
+            dialog.showMessageBox(win, {
+              type: 'info',
+              title: 'About XPIA Tools',
+              message: 'XPIA Tools',
+              detail: `AI Security Research Toolkit\nVersion ${app.getVersion()}\n\n${REPO_URL}`,
+            }),
+        },
+      ],
+    },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
 app.whenReady().then(async () => {
   try {
     const port = await startLocalServer();
     // eslint-disable-next-line no-console
     console.log(`[xpia-desktop] local server ready on 127.0.0.1:${port}`);
     createWindow(port);
+    buildAppMenu();
     setupAutoUpdates();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow(port);
     });
   } catch (err) {
+    logFatal('whenReady', err);
     // eslint-disable-next-line no-console
     console.error('[xpia-desktop] startup failed', err);
     app.quit();
@@ -322,4 +433,19 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', () => {
+  // Release the local servers promptly so no file handle lingers into an update
+  // install (a lingering handle is the root of the "failed to uninstall" update error).
+  try {
+    if (mainServer) mainServer.close();
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (lanServer) lanServer.close();
+  } catch {
+    /* ignore */
+  }
 });

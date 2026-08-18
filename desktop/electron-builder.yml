@@ -37,9 +37,12 @@ win:
     - nsis
 
 nsis:
-  oneClick: false
+  # One-click per-user install: no elevation and no folder-choice step — the reliable
+  # path for silent auto-updates. An assisted installer's silent update intermittently
+  # fails with "Failed to uninstall old application files" because its running-app
+  # Retry prompt is suppressed; one-click per-user avoids that whole class.
+  oneClick: true
   perMachine: false
-  allowToChangeInstallationDirectory: true
   # Space-free on purpose: electron-updater's latest.yml refers to the installer as
   # `XPIA-Tools-Setup-<version>.exe`, and GitHub rewrites spaces in asset names — so a
   # `${productName}` (spaced) filename would not match the manifest and break updates.
