@@ -10,6 +10,26 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-17
+
+### Added
+
+- **Application menu** for the desktop app — File (Check for Updates…), Edit, View, Window,
+  and a Help menu linking to the GitHub documentation, issue tracker, and releases.
+- The desktop app tailors itself to single-user local use: multi-user and cloud-only UI is
+  hidden (admin Requests / Invite Codes / Users & Roles / Usage tabs; Two-Factor and Change
+  Password in Settings; Send Feedback and Logout; and the matching in-app Help sections).
+  Detected via `/api/health`, so the web deployment is unaffected.
+
+### Fixed
+
+- The desktop app now uses the XPIA shield as its Windows icon instead of the default
+  Electron icon.
+- Reliable auto-updates: the installer is now one-click per-user, resolving the intermittent
+  "Failed to uninstall old application files" error when applying an update. Because the fix
+  ships in the installer, the current build must be updated to this one manually once;
+  subsequent updates are automatic.
+
 ## [1.3.0] - 2026-08-17
 
 ### Added
@@ -89,7 +109,8 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 - Developer tooling: ESLint + Prettier, test coverage reporting with regression thresholds, and
   CI that lints, builds, and tests the server, client, and CLI.
 
-[Unreleased]: https://github.com/skajake1983/xpia-tools-oss/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/skajake1983/xpia-tools-oss/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.4.0
 [1.3.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.3.0
 [1.2.1]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.2.1
 [1.2.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.2.0
