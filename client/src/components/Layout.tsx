@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FileText, Image, Zap, Globe, Settings, LogOut, LayoutDashboard, BarChart3, ShieldCheck, Menu, X, HelpCircle, Scale, MessageSquarePlus, Sparkles } from 'lucide-react';
 import FeedbackModal from './FeedbackModal';
+import { useLocalMode } from '../hooks/useLocalMode';
 
 const NAV_ITEMS = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -26,6 +27,7 @@ const ADMIN_ITEMS = [
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const isLocal = useLocalMode();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -122,6 +124,7 @@ export default function Layout() {
             {item.label}
           </NavLink>
         ))}
+        {!isLocal && (
         <button
           onClick={() => setFeedbackOpen(true)}
           className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200 transition-all duration-150 mb-1"
@@ -129,6 +132,7 @@ export default function Layout() {
           <MessageSquarePlus className="w-[18px] h-[18px]" />
           Send Feedback
         </button>
+        )}
         <a
           href="/terms"
           target="_blank"
@@ -145,6 +149,7 @@ export default function Layout() {
               2FA {user?.totpEnabled ? '✓ Enabled' : '○ Disabled'}
             </p>
           </div>
+          {!isLocal && (
           <button
             onClick={handleLogout}
             className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
@@ -152,6 +157,7 @@ export default function Layout() {
           >
             <LogOut className="w-4 h-4" />
           </button>
+          )}
         </div>
         <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-3 text-center">&copy; 2026 XPIA Tools. All rights reserved.</p>
       </div>

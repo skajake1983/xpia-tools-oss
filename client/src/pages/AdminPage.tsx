@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { Shield, Users, Cpu, ToggleLeft, ToggleRight, Search, UserPlus, Check, X, Ticket, Copy, Plus, Trash2, Clock, Pencil, Loader2, FileText, RotateCcw, BarChart3, AlertTriangle, Construction, ClipboardList, ChevronLeft, ChevronRight, Download, Bell } from 'lucide-react';
+import { useLocalMode } from '../hooks/useLocalMode';
 import HelpTip from '../components/HelpTip';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -119,9 +120,16 @@ interface PlatformMetrics {
 
 type Tab = 'requests' | 'users' | 'invites' | 'providers' | 'models' | 'usage' | 'prompts' | 'audit';
 
+// Multi-user / cloud tabs hidden in the single-user desktop build.
+const LOCAL_HIDDEN_TABS: Tab[] = ['requests', 'users', 'invites', 'usage'];
+
 export default function AdminPage() {
   const { user } = useAuth();
+  const isLocal = useLocalMode();
   const [tab, setTab] = useState<Tab>('requests');
+  useEffect(() => {
+    if (isLocal && LOCAL_HIDDEN_TABS.includes(tab)) setTab('providers');
+  }, [isLocal]); // eslint-disable-line react-hooks/exhaustive-deps
   const [providers, setProviders] = useState<Provider[]>([]);
   const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
   const [installingKey, setInstallingKey] = useState<string | null>(null);
@@ -506,7 +514,7 @@ export default function AdminPage() {
     }
   };
 
-  const TABS: { id: Tab; label: string; icon: typeof Shield }[] = [
+  const ALL_TABS: { id: Tab; label: string; icon: typeof Shield }[] = [
     { id: 'requests', label: 'Requests', icon: UserPlus },
     { id: 'users', label: 'Users & Roles', icon: Users },
     { id: 'invites', label: 'Invite Codes', icon: Ticket },
@@ -516,6 +524,7 @@ export default function AdminPage() {
     { id: 'prompts', label: 'Prompts', icon: FileText },
     { id: 'audit', label: 'Audit Log', icon: ClipboardList },
   ];
+  const TABS = ALL_TABS.filter((t) => !(isLocal && LOCAL_HIDDEN_TABS.includes(t.id)));
 
   const renderUserCard = (u: AdminUser) => (
     <div key={u.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4">

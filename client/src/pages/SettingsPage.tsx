@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useThemeContext } from '../context/ThemeContext';
+import { useLocalMode } from '../hooks/useLocalMode';
 import { api } from '../lib/api';
 import { Shield, ShieldCheck, ShieldOff, Key, Plus, Trash2, Check, Loader2, Sun, Moon, Monitor, User, Linkedin, Star, AlertTriangle, Lock, Eye, EyeOff, X, ExternalLink } from 'lucide-react';
 
@@ -148,6 +149,7 @@ function ChangePasswordSection() {
 
 export default function SettingsPage() {
   const { user, refreshUser, logout } = useAuth();
+  const isLocal = useLocalMode();
   const { theme, setTheme } = useThemeContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -424,7 +426,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* 2FA settings */}
+      {/* 2FA settings — hidden in the local single-user build (no login/accounts) */}
+      {!isLocal && (
       <div className="card">
         <div className="flex items-center gap-3 mb-4">
           <Key className="w-5 h-5 text-brand-600" />
@@ -512,9 +515,10 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+      )}
 
-      {/* Change Password */}
-      <ChangePasswordSection />
+      {/* Change Password — hidden in the local single-user build (no login/accounts) */}
+      {!isLocal && <ChangePasswordSection />}
 
       {/* API Keys */}
       <div className="card mt-6">

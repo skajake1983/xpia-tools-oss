@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, FileText, Image, Zap, Globe, Shield, EyeOff, Cpu, BookOpen, Layers, MessageSquarePlus, LayoutDashboard, ScrollText, BarChart3, Settings, Lock, ClipboardList, Construction } from 'lucide-react';
+import { useLocalMode } from '../hooks/useLocalMode';
 
 interface SectionProps {
   title: string;
@@ -87,6 +88,7 @@ function TechCategory({ name, count, description, techniques }: TechCategoryProp
 }
 
 export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) {
+  const isLocal = useLocalMode();
   return (
     <>
       {/* Overview */}
@@ -756,8 +758,8 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
         </ul>
       </Section>}
 
-      {/* Account & Security */}
-      <Section title="Account & Security" icon={<Lock className="w-5 h-5 text-red-600" />}>
+      {/* Account & Security — hidden in the local single-user build */}
+      {!isLocal && <Section title="Account & Security" icon={<Lock className="w-5 h-5 text-red-600" />}>
         <h4 className="font-semibold text-gray-900 dark:text-white">Registration</h4>
         <p>
           Registration may require a valid <strong>invite code</strong>, depending on the site configuration. Admins can toggle whether invite codes are required from the <strong>Admin Console → Invites</strong> tab. When enabled, enter your invite code — the system will pre-fill your name and organization from the invite if available. When disabled, anyone can register directly. A CAPTCHA is always required to prevent automated signups.
@@ -776,7 +778,7 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
         <p>Enter your email to receive a password reset link. After resetting, you'll be required to change your password on next login.</p>
 
 
-      </Section>
+      </Section>}
 
       {/* Rules of Engagement */}
       <Section title="Rules of Engagement" icon={<ClipboardList className="w-5 h-5 text-orange-600" />}>
@@ -809,8 +811,8 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
         </p>
       </Section>
 
-      {/* Feedback & Bug Reports */}
-      <Section title="Feedback & Bug Reports" icon={<MessageSquarePlus className="w-5 h-5 text-brand-600" />}>
+      {/* Feedback & Bug Reports — hidden in the local single-user build */}
+      {!isLocal && <Section title="Feedback & Bug Reports" icon={<MessageSquarePlus className="w-5 h-5 text-brand-600" />}>
         <p>
           Found a bug or have a suggestion? Use the <strong>Send Feedback</strong> button to report issues, request features, or share general feedback directly from the app.
         </p>
@@ -824,7 +826,7 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
           <li>If you're logged in, feedback is linked to your account automatically. If your session has expired, the app will refresh it seamlessly.</li>
           <li>If you're not logged in, a CAPTCHA is required and you can optionally include your email for follow-up.</li>
         </ul>
-      </Section>
+      </Section>}
     </>
   );
 }

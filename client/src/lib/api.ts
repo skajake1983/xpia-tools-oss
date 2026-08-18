@@ -526,6 +526,9 @@ export const api = {
     },
   },
 
+  // `mode: 'local'` only on the standalone desktop build (absent on the web app).
+  health: () => request<{ status: string; mode?: string }>('/health'),
+
   // === User API Keys ===
   keys: {
     list: () =>
