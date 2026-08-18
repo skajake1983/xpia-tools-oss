@@ -129,14 +129,25 @@ async function checkLimits(userId: string): Promise<LimitCheckResult> {
 
 // === Key Resolution ===
 
-async function getApiKey(userId: string, providerId: string): Promise<string> {
-  const keyDoc = await repos.apiKeys.getActiveKey(userId, providerId);
-
+/**
+ * Resolve the decrypted key AND the adapter for a call. For Azure OpenAI the resource endpoint
+ * and API version live on the user's key (per-resource), so build a fresh adapter from the key
+ * instead of the cached, provider-level one.
+ */
+async function resolveApiKeyAndAdapter(
+  userId: string,
+  provider: ProviderDoc,
+): Promise<{ apiKey: string; adapter: LLMAdapter }> {
+  const keyDoc = await repos.apiKeys.getActiveKey(userId, provider.id);
   if (!keyDoc) {
     throw new Error(`No API key configured for this provider. Add one in Settings → API Keys.`);
   }
-
-  return decryptApiKey(keyDoc.encryptedKey, keyDoc.keyIv, keyDoc.keyTag, keyDoc.keyFingerprint ?? undefined);
+  const apiKey = decryptApiKey(keyDoc.encryptedKey, keyDoc.keyIv, keyDoc.keyTag, keyDoc.keyFingerprint ?? undefined);
+  if (provider.name === 'azure-openai') {
+    const adapter = new AzureOpenAIAdapter(provider.id, keyDoc.endpoint || provider.baseUrl, keyDoc.apiVersion || undefined);
+    return { apiKey, adapter };
+  }
+  return { apiKey, adapter: getAdapter(provider) };
 }
 
 // === Usage Logging ===
@@ -239,11 +250,9 @@ export async function complete(req: GatewayCompletionRequest): Promise<GatewayCo
     throw new Error(limitCheck.reason);
   }
 
-  // Get API key
-  log.debug('Resolving API key');
-  const apiKey = await getApiKey(req.userId, provider.id);
-  log.debug('Got API key, creating adapter');
-  const adapter = getAdapter(provider);
+  // Get API key + adapter (Azure resolves its endpoint from the key)
+  log.debug('Resolving API key and adapter');
+  const { apiKey, adapter } = await resolveApiKeyAndAdapter(req.userId, provider);
 
   const logId = uuidv4();
   const startTime = Date.now();
@@ -358,8 +367,7 @@ export async function streamComplete(
     throw new Error(limitCheck.reason);
   }
 
-  const apiKey = await getApiKey(req.userId, provider.id);
-  const adapter = getAdapter(provider);
+  const { apiKey, adapter } = await resolveApiKeyAndAdapter(req.userId, provider);
   const logId = uuidv4();
   const startTime = Date.now();
 

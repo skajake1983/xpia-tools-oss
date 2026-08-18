@@ -366,6 +366,10 @@ export interface ApiKeyDoc {
   keyFingerprint: string | null;
   keyLabel: string;
   isActive: boolean;
+  /** Azure OpenAI resource endpoint (per-key; other providers ignore it). */
+  endpoint?: string | null;
+  /** Azure OpenAI REST API version override (per-key). */
+  apiVersion?: string | null;
   createdAt: string;
 }
 

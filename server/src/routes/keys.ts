@@ -50,16 +50,27 @@ const addKeySchema = z.object({
   providerId: z.string().min(1).max(50),
   apiKey: z.string().min(10).max(500),
   label: z.string().min(1).max(100).optional(),
+  /** Azure OpenAI resource endpoint (stored per-key; ignored by other providers). */
+  endpoint: z.string().trim().min(1).max(300).optional(),
+  /** Azure OpenAI REST API version override (per-key). */
+  apiVersion: z.string().trim().min(1).max(50).optional(),
 });
 
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { providerId, apiKey, label } = addKeySchema.parse(req.body);
+    const { providerId, apiKey, label, endpoint, apiVersion } = addKeySchema.parse(req.body);
     const userId = req.user!.userId;
 
     const provider = await repos.config.getProvider(providerId);
     if (!provider || !provider.isEnabled) {
       res.status(404).json({ error: 'Provider not found or disabled' });
+      return;
+    }
+
+    // Azure OpenAI needs a resource endpoint — it's per-resource, so it lives with the key.
+    const isAzure = provider.name === 'azure-openai';
+    if (isAzure && !endpoint) {
+      res.status(400).json({ error: 'Azure OpenAI requires a resource endpoint (e.g. https://your-resource.openai.azure.com).' });
       return;
     }
 
@@ -72,6 +83,8 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     await repos.apiKeys.create({
       id, userId, providerId, encryptedKey: encrypted, keyIv: iv, keyTag: tag,
       keyFingerprint, keyLabel: label ?? provider.displayName, isActive: true,
+      endpoint: isAzure ? (endpoint ?? null) : null,
+      apiVersion: isAzure ? (apiVersion ?? null) : null,
       createdAt: new Date().toISOString(),
     });
 

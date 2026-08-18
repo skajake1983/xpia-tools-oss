@@ -14,6 +14,8 @@ import { getAllPrompts, getPromptRegistry } from '../config/prompts';
 import { INTEGRATION_CATALOG, getIntegrationPreset, presetToRecords } from '../config/integration-catalog';
 import { clearTrustedDevices, blockAllUserTokens } from '../services/auth.service';
 import { logAudit, getAuditLogs } from '../services/audit.service';
+import { decryptApiKey } from '../services/llm/encryption';
+import { listProviderModels, isDiscoverySupported } from '../services/model-discovery.service';
 import repos from '../db/repos';
 import type { UserDoc } from '../db/repositories/types';
 
@@ -305,6 +307,99 @@ router.post('/models', async (req: AuthRequest, res: Response) => {
   });
 
   res.status(201).json({ model: created ? { ...created, providerName } : null, warning });
+});
+
+// === Live model discovery ("Import from provider") ===
+
+// List the models a provider currently offers, using the admin's own key for that provider.
+router.get('/providers/:id/available-models', async (req: AuthRequest, res: Response) => {
+  try {
+    const providerId = req.params.id as string;
+    const provider = await repos.config.getProvider(providerId);
+    if (!provider) {
+      res.status(404).json({ error: 'Provider not found' });
+      return;
+    }
+    if (!isDiscoverySupported(provider.name)) {
+      res.status(400).json({ error: `Automatic model listing isn't available for ${provider.displayName}. Add models manually.` });
+      return;
+    }
+    const keyDoc = await repos.apiKeys.getActiveKey(req.user!.userId, providerId);
+    if (!keyDoc) {
+      res.status(400).json({ error: 'Add an API key for this provider first (Settings → API Keys).' });
+      return;
+    }
+    const apiKey = decryptApiKey(keyDoc.encryptedKey, keyDoc.keyIv, keyDoc.keyTag, keyDoc.keyFingerprint ?? undefined);
+    const discovered = await listProviderModels({ providerName: provider.name, baseUrl: provider.baseUrl, apiKey });
+    const existing = new Set((await repos.config.getModelsByProvider(providerId)).map((m) => m.modelId));
+    res.json({
+      models: discovered
+        .map((m) => ({ ...m, already_added: existing.has(m.modelId) }))
+        .sort((a, b) => a.modelId.localeCompare(b.modelId)),
+    });
+  } catch (err) {
+    res.status(502).json({ error: err instanceof Error ? err.message : 'Failed to list models' });
+  }
+});
+
+// Bulk-add selected discovered models (prices default to 0 — edit them on the Models tab).
+const importModelsSchema = z.object({
+  providerId: z.string().min(1),
+  models: z
+    .array(
+      z.object({
+        modelId: z.string().min(1).max(100),
+        displayName: z.string().min(1).max(200),
+        maxContextTokens: z.number().int().min(1).optional(),
+        maxOutputTokens: z.number().int().min(1).optional(),
+      }),
+    )
+    .min(1)
+    .max(200),
+});
+
+router.post('/models/import', async (req: AuthRequest, res: Response) => {
+  const data = importModelsSchema.parse(req.body);
+  const provider = await repos.config.getProvider(data.providerId);
+  if (!provider) {
+    res.status(400).json({ error: 'Provider not found' });
+    return;
+  }
+  const existing = new Set((await repos.config.getModelsByProvider(data.providerId)).map((m) => m.modelId));
+  let added = 0;
+  let skipped = 0;
+  for (const m of data.models) {
+    if (existing.has(m.modelId)) {
+      skipped++;
+      continue;
+    }
+    await repos.config.createModel({
+      id: uuidv4(),
+      type: 'model',
+      providerId: data.providerId,
+      modelId: m.modelId,
+      displayName: m.displayName,
+      inputPricePerMillion: 0,
+      outputPricePerMillion: 0,
+      maxContextTokens: m.maxContextTokens ?? 128000,
+      maxOutputTokens: m.maxOutputTokens ?? 4096,
+      supportsStreaming: true,
+      isEnabled: true,
+      createdAt: new Date().toISOString(),
+    });
+    existing.add(m.modelId);
+    added++;
+  }
+  logAudit({
+    action: 'models_imported',
+    actorId: req.user!.userId,
+    actorEmail: req.user!.email,
+    targetType: 'provider',
+    targetId: data.providerId,
+    targetLabel: provider.displayName,
+    detail: `Imported ${added} model(s) for ${provider.displayName}${skipped ? ` (${skipped} already present)` : ''}`,
+  });
+  res.json({ added, skipped });
 });
 
 // Delete a model (only if it has no usage)

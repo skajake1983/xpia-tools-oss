@@ -186,6 +186,15 @@ export default function AdminPage() {
   const [modelSaving, setModelSaving] = useState(false);
   const [deleteModelTarget, setDeleteModelTarget] = useState<Model | null>(null);
 
+  // "Import from provider" model picker
+  const [showImport, setShowImport] = useState(false);
+  const [importProviderId, setImportProviderId] = useState('');
+  const [importList, setImportList] = useState<{ modelId: string; displayName: string; maxContextTokens?: number; maxOutputTokens?: number; already_added: boolean }[]>([]);
+  const [importSelected, setImportSelected] = useState<Set<string>>(new Set());
+  const [importSearch, setImportSearch] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+
   // Audit log state
   const [auditLogs, setAuditLogs] = useState<{ id: string; action: string; actorEmail: string; targetType: string; targetLabel: string; detail: string; createdAt: string }[]>([]);
   const [auditTotal, setAuditTotal] = useState(0);
@@ -364,6 +373,58 @@ export default function AdminPage() {
       loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Delete failed');
+    }
+  };
+
+  const fetchAvailableModels = async (providerId: string) => {
+    setImportProviderId(providerId);
+    setImportList([]);
+    setImportSelected(new Set());
+    setError('');
+    if (!providerId) return;
+    setImportLoading(true);
+    try {
+      const { models: avail } = await api.admin.getAvailableModels(providerId);
+      setImportList(avail);
+      setImportSelected(new Set(avail.filter((m) => !m.already_added).map((m) => m.modelId)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to list models');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const toggleImportModel = (modelId: string) => {
+    setImportSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(modelId)) next.delete(modelId);
+      else next.add(modelId);
+      return next;
+    });
+  };
+
+  const chosenImportModels = () => importList.filter((m) => importSelected.has(m.modelId) && !m.already_added);
+
+  const doImportModels = async () => {
+    const chosen = chosenImportModels();
+    if (!chosen.length) return;
+    setImporting(true);
+    setError('');
+    try {
+      const { added, skipped } = await api.admin.importModels(
+        importProviderId,
+        chosen.map((m) => ({ modelId: m.modelId, displayName: m.displayName, maxContextTokens: m.maxContextTokens, maxOutputTokens: m.maxOutputTokens })),
+      );
+      setShowImport(false);
+      setImportList([]);
+      setImportProviderId('');
+      setSuccess(`Imported ${added} model${added === 1 ? '' : 's'}${skipped ? ` (${skipped} already present)` : ''} — set pricing below.`);
+      setTimeout(() => setSuccess(''), 4000);
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Import failed');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -1158,13 +1219,84 @@ export default function AdminPage() {
                 <button className="btn btn-secondary" onClick={resetModelForm}>Cancel</button>
               </div>
             </div>
+          ) : showImport ? (
+            <div className="card space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Import models from a provider</h2>
+                <p className="text-xs text-gray-400 mt-1">
+                  Pulls the provider's current models using your API key for it. Prices default to $0 — edit them in the table below after importing. (Azure isn't supported — add Azure deployments manually.)
+                </p>
+              </div>
+              <select
+                className="select w-full sm:max-w-xs"
+                value={importProviderId}
+                onChange={(e) => fetchAvailableModels(e.target.value)}
+              >
+                <option value="">Select provider…</option>
+                {providers.filter((p) => p.is_enabled).map((p) => (
+                  <option key={p.id} value={p.id}>{p.display_name}</option>
+                ))}
+              </select>
+              {importLoading && (
+                <div className="flex items-center gap-2 text-sm text-gray-400"><Loader2 className="w-4 h-4 animate-spin" /> Fetching models…</div>
+              )}
+              {importList.length > 0 && (
+                <>
+                  <input
+                    className="input w-full sm:max-w-xs"
+                    placeholder="Search models…"
+                    value={importSearch}
+                    onChange={(e) => setImportSearch(e.target.value)}
+                  />
+                  <div className="max-h-80 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800">
+                    {importList
+                      .filter((m) => m.modelId.toLowerCase().includes(importSearch.toLowerCase()) || m.displayName.toLowerCase().includes(importSearch.toLowerCase()))
+                      .map((m) => (
+                        <label key={m.modelId} className={`flex items-center gap-3 px-3 py-2 text-sm ${m.already_added ? 'opacity-50' : 'cursor-pointer'}`}>
+                          <input
+                            type="checkbox"
+                            checked={importSelected.has(m.modelId)}
+                            disabled={m.already_added}
+                            onChange={() => toggleImportModel(m.modelId)}
+                            className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                          />
+                          <span className="flex-1 min-w-0">
+                            <span className="font-medium text-gray-900 dark:text-gray-100">{m.displayName}</span>
+                            <span className="ml-2 font-mono text-xs text-gray-400">{m.modelId}</span>
+                          </span>
+                          {m.already_added && <span className="badge badge-info shrink-0">added</span>}
+                        </label>
+                      ))}
+                  </div>
+                </>
+              )}
+              <div className="flex gap-3">
+                <button
+                  className="btn btn-primary flex items-center gap-2"
+                  onClick={doImportModels}
+                  disabled={importing || chosenImportModels().length === 0}
+                >
+                  {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  {importing ? 'Importing…' : `Add ${chosenImportModels().length} model${chosenImportModels().length === 1 ? '' : 's'}`}
+                </button>
+                <button className="btn btn-secondary" onClick={() => { setShowImport(false); setImportList([]); setImportProviderId(''); }}>Cancel</button>
+              </div>
+            </div>
           ) : (
-            <button
-              className="btn btn-primary flex items-center gap-2"
-              onClick={() => { resetModelForm(); setShowModelForm(true); loadData(); }}
-            >
-              <Plus className="w-4 h-4" /> Add Model
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                className="btn btn-primary flex items-center gap-2"
+                onClick={() => { resetModelForm(); setShowModelForm(true); loadData(); }}
+              >
+                <Plus className="w-4 h-4" /> Add Model
+              </button>
+              <button
+                className="btn btn-secondary flex items-center gap-2"
+                onClick={() => { setShowImport(true); setImportProviderId(''); setImportList([]); setImportSearch(''); loadData(); }}
+              >
+                <Download className="w-4 h-4" /> Import from provider
+              </button>
+            </div>
           )}
 
           {/* Model Registry Table */}
