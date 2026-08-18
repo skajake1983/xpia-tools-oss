@@ -6,6 +6,7 @@ import HelpTip from '../components/HelpTip';
 import LlmModelSelector from '../components/LlmModelSelector';
 import GeneratingOverlay from '../components/GeneratingOverlay';
 import { useLlmPreference, formatCreditError } from '../hooks/useLlmPreference';
+import { useLocalMode } from '../hooks/useLocalMode';
 
 interface Technique {
   id: string;
@@ -77,6 +78,7 @@ export default function ImagesPage() {
   const [addQrCode, setAddQrCode] = useState(false);
   const [imageLayout, setImageLayout] = useState('auto');
   const [loading, setLoading] = useState(false);
+  const isLocal = useLocalMode();
   const [aiLoading, setAiLoading] = useState(false);
   const { enabled: llmEnabled, setEnabled: setLlmEnabled, selectedModelId, setSelectedModelId, hasExplicitPreference } = useLlmPreference('images');
   const [error, setError] = useState('');
@@ -187,18 +189,23 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
         imageLayout !== 'auto' ? imageLayout : undefined,
       );
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      setSuccess(`Generated ${types.length === 1 ? filename : `${types.length} images (${filename})`}`);
-      // DB save is fire-and-forget on the server — delay refetch so it lands
-      setTimeout(() => loadHistory(), 2000);
+      if (isLocal) {
+        // Desktop: don't pop a native Save As dialog — the image is saved to History; download
+        // it from there. (The hosted app keeps the immediate download.)
+        setSuccess(`Generated ${types.length === 1 ? '1 image' : `${types.length} images`} — see Recent History →`);
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setSuccess(`Generated ${types.length === 1 ? filename : `${types.length} images (${filename})`}`);
+      }
+      // The DB save is fire-and-forget on the server — refetch a few times so it lands.
+      [400, 1200, 2500].forEach((ms) => setTimeout(() => loadHistory(), ms));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed');
     } finally {
@@ -370,7 +377,7 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
 
             <button type="submit" className="btn-primary" disabled={loading || !selectedTechnique || selectedImageTypes.length === 0}>
               <Download className="w-4 h-4" />
-              {loading ? 'Generating…' : `Generate & Download${selectedImageTypes.length > 1 ? ` (${selectedImageTypes.length})` : ''}`}
+              {loading ? 'Generating…' : `${isLocal ? 'Generate' : 'Generate & Download'}${selectedImageTypes.length > 1 ? ` (${selectedImageTypes.length})` : ''}`}
             </button>
           </form>
         </div>

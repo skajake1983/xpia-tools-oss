@@ -50,6 +50,9 @@ app.use(cors({
   credentials: true,
 }));
 app.use(cookieParser());
+// Example uploads (base64 files) for "vary from an example" need headroom; mount a raised limit
+// on just those paths before the global 1 MB parser (which then skips the already-parsed body).
+app.use(['/api/documents/analyze-example', '/api/payloads/analyze-example'], express.json({ limit: '15mb' }));
 app.use(express.json({ limit: '1mb' }));
 
 // Correlation ID + structured request logging

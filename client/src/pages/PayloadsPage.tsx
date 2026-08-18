@@ -5,6 +5,7 @@ import LlmModelSelector from '../components/LlmModelSelector';
 import HelpTip from '../components/HelpTip';
 import { useLlmPreference, formatCreditError } from '../hooks/useLlmPreference';
 import GeneratingOverlay from '../components/GeneratingOverlay';
+import VaryExamplePanel from '../components/VaryExamplePanel';
 
 interface Technique {
   id: string;
@@ -52,6 +53,7 @@ export default function PayloadsPage() {
   const [format, setFormat] = useState<'json' | 'text'>('json');
   const [evasionModifier, setEvasionModifier] = useState('none');
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<'technique' | 'example'>('technique');
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<{ payloads: Payload[]; metadata: { seed: number }; formatted?: string } | null>(null);
@@ -204,6 +206,15 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Config */}
         <div className="lg:col-span-1">
+          <div className="mb-4 flex w-full p-1 gap-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+            <button type="button" onClick={() => setMode('technique')} className={`flex-1 text-xs font-semibold rounded-lg px-3 py-2 transition-colors ${mode === 'technique' ? 'bg-brand-600 text-white' : 'text-gray-500 dark:text-gray-400'}`}>Build from technique</button>
+            <button type="button" onClick={() => setMode('example')} className={`flex-1 text-xs font-semibold rounded-lg px-3 py-2 transition-colors ${mode === 'example' ? 'bg-brand-600 text-white' : 'text-gray-500 dark:text-gray-400'}`}>Vary an example</button>
+          </div>
+          {mode === 'example' ? (
+            <div className="card">
+              <VaryExamplePanel kind="payload" modelId={selectedModelId} modelReady={llmEnabled && !!selectedModelId} onPayloadResult={(r) => { setResult(r as unknown as typeof result); setActiveTab('current'); }} />
+            </div>
+          ) : (
           <form onSubmit={handleGenerate} className="card space-y-5">
             {error && <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/50 dark:text-red-400 rounded-lg px-3 py-2">{error}</p>}
 
@@ -403,6 +414,7 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
               {loading ? 'Generating…' : 'Generate Payloads'}
             </button>
           </form>
+          )}
         </div>
 
         {/* Right panel — tabbed Current / History */}

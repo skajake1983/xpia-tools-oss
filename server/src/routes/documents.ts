@@ -4,6 +4,7 @@ import JSZip from 'jszip';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { generationLimiter } from '../middleware/rateLimiter';
 import * as documentService from '../services/document.service';
+import * as exampleVariants from '../services/example-variants.service';
 import logger from '../logger';
 
 const router = Router();
@@ -116,6 +117,95 @@ router.get('/history/:id/download', async (req: AuthRequest, res: Response) => {
   const safeFilename = doc.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
   res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
   res.send(doc.content);
+});
+
+// ── Vary from an example ─────────────────────────────────────────────────────
+
+const varyDocAxes = z.object({
+  wording: z.boolean().optional(),
+  technique: z.boolean().optional(),
+  targetAction: z.boolean().optional(),
+  format: z.boolean().optional(),
+});
+
+const analyzeExampleSchema = z.object({
+  modelId: z.string().min(1).max(100),
+  filename: z.string().min(1).max(300),
+  dataBase64: z.string().min(1),
+  consent: z.boolean(),
+});
+
+const varyDocSchema = z.object({
+  modelId: z.string().min(1).max(100),
+  techniqueId: z.string().min(1).max(100),
+  basePayload: z.string().min(1).max(2000),
+  docType: z.enum(DOC_TYPE_ENUM),
+  count: z.number().int().min(1).max(25),
+  vary: varyDocAxes.optional(),
+  consent: z.boolean(),
+});
+
+// Analyze an uploaded example document → detected technique + extracted payload. The body limit
+// on this path is raised in the app setup so base64-encoded files fit.
+router.post('/analyze-example', generationLimiter, async (req: AuthRequest, res: Response) => {
+  try {
+    const { modelId, filename, dataBase64, consent } = analyzeExampleSchema.parse(req.body);
+    if (!consent) {
+      res.status(403).json({ error: 'Consent required to send the example to your AI provider.' });
+      return;
+    }
+    const buffer = Buffer.from(dataBase64, 'base64');
+    if (buffer.length === 0) throw new Error('Empty or invalid file data');
+    if (buffer.length > exampleVariants.MAX_UPLOAD_BYTES) throw new Error('File too large (max 10 MB)');
+    const { text, truncated } = await exampleVariants.extractExampleText(filename, buffer);
+    const analysis = await exampleVariants.analyzeExample({
+      userId: req.user!.userId,
+      modelId,
+      text,
+      truncated,
+      kind: 'document',
+      correlationId: req.correlationId,
+    });
+    res.json(analysis);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Analysis failed';
+    const status = message.includes('limit') || message.includes('budget') || message.includes('suspended') ? 429 : 400;
+    res.status(status).json({ error: message });
+  }
+});
+
+// Generate N document variants from a base payload → a zip download.
+router.post('/generate-variants', generationLimiter, async (req: AuthRequest, res: Response) => {
+  try {
+    const { modelId, techniqueId, basePayload, docType, count, vary, consent } = varyDocSchema.parse(req.body);
+    if (!consent) {
+      res.status(403).json({ error: 'Consent required to send the example to your AI provider.' });
+      return;
+    }
+    const variants = await exampleVariants.generateDocumentVariants({
+      userId: req.user!.userId,
+      modelId,
+      techniqueId,
+      basePayload,
+      docType: docType as documentService.DocType,
+      count,
+      vary: vary || {},
+      correlationId: req.correlationId,
+    });
+    if (variants.length === 0) throw new Error('No variants were generated');
+    const zip = new JSZip();
+    variants.forEach((v, i) => zip.file(`variant-${i + 1}-${v.filename}`, v.buffer));
+    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="xpia-variants-${timestamp}.zip"`);
+    res.send(zipBuffer);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Variant generation failed';
+    const status = message.includes('limit') || message.includes('budget') || message.includes('suspended') ? 429 : 400;
+    logger.error({ correlationId: (req as AuthRequest).correlationId, err: message }, 'Document variant generation error');
+    res.status(status).json({ error: message });
+  }
 });
 
 export default router;

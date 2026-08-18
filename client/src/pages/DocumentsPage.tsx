@@ -6,6 +6,8 @@ import HelpTip from '../components/HelpTip';
 import LlmModelSelector from '../components/LlmModelSelector';
 import GeneratingOverlay from '../components/GeneratingOverlay';
 import { useLlmPreference, formatCreditError } from '../hooks/useLlmPreference';
+import { useLocalMode } from '../hooks/useLocalMode';
+import VaryExamplePanel from '../components/VaryExamplePanel';
 
 interface Technique {
   id: string;
@@ -106,6 +108,8 @@ export default function DocumentsPage() {
   const [customAction, setCustomAction] = useState('');
   const [addQrCode, setAddQrCode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<'technique' | 'example'>('technique');
+  const isLocal = useLocalMode();
   const [aiLoading, setAiLoading] = useState(false);
   const { enabled: llmEnabled, setEnabled: setLlmEnabled, selectedModelId, setSelectedModelId, hasExplicitPreference } = useLlmPreference('documents');
   const [error, setError] = useState('');
@@ -218,18 +222,23 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
         addQrCode || undefined,
       );
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      setSuccess(`Generated ${types.length === 1 ? filename : `${types.length} documents (${filename})`}`);
-      // DB save is fire-and-forget on the server — delay refetch so it lands
-      setTimeout(() => loadHistory(), 2000);
+      if (isLocal) {
+        // Desktop: don't pop a native Save As dialog — the document is saved to History; download
+        // it from there. (The hosted app keeps the immediate download.)
+        setSuccess(`Generated ${types.length === 1 ? '1 document' : `${types.length} documents`} — see Recent History →`);
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setSuccess(`Generated ${types.length === 1 ? filename : `${types.length} documents (${filename})`}`);
+      }
+      // The DB save is fire-and-forget on the server — refetch a few times so it lands.
+      [400, 1200, 2500].forEach((ms) => setTimeout(() => loadHistory(), ms));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed');
     } finally {
@@ -258,6 +267,15 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Configuration panel */}
         <div className="lg:col-span-1">
+          <div className="mb-4 flex w-full p-1 gap-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+            <button type="button" onClick={() => setMode('technique')} className={`flex-1 text-xs font-semibold rounded-lg px-3 py-2 transition-colors ${mode === 'technique' ? 'bg-brand-600 text-white' : 'text-gray-500 dark:text-gray-400'}`}>Build from technique</button>
+            <button type="button" onClick={() => setMode('example')} className={`flex-1 text-xs font-semibold rounded-lg px-3 py-2 transition-colors ${mode === 'example' ? 'bg-brand-600 text-white' : 'text-gray-500 dark:text-gray-400'}`}>Vary an example</button>
+          </div>
+          {mode === 'example' ? (
+            <div className="card">
+              <VaryExamplePanel kind="document" modelId={selectedModelId} modelReady={llmEnabled && !!selectedModelId} onDocGenerated={loadHistory} />
+            </div>
+          ) : (
           <form onSubmit={handleGenerate} className="card space-y-6">
             {error && <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/50 dark:text-red-400 rounded-lg px-3 py-2">{error}</p>}
             {success && <p className="text-sm text-green-600 bg-green-50 dark:bg-green-950/50 dark:text-green-400 rounded-lg px-3 py-2">{success}</p>}
@@ -377,14 +395,16 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
 
             <button type="submit" className="btn-primary" disabled={loading || !selectedTechnique || selectedDocTypes.length === 0}>
               <Download className="w-4 h-4" />
-              {loading ? 'Generating…' : `Generate & Download${selectedDocTypes.length > 1 ? ` (${selectedDocTypes.length})` : ''}`}
+              {loading ? 'Generating…' : `${isLocal ? 'Generate' : 'Generate & Download'}${selectedDocTypes.length > 1 ? ` (${selectedDocTypes.length})` : ''}`}
             </button>
           </form>
+          )}
         </div>
 
         {/* Right panel — technique details + history */}
         <div className="lg:col-span-2 space-y-6">
           {/* Technique detail */}
+          {mode === 'technique' && (
           <div className="card h-fit">
             <div className="flex items-center gap-2 mb-4">
               <FileText className="w-5 h-5 text-brand-600" />
@@ -424,6 +444,7 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
               <p className="text-sm text-gray-400">Select a technique to see details</p>
             )}
           </div>
+          )}
 
           {/* History */}
           {history.length > 0 ? (
