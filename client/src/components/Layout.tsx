@@ -50,9 +50,9 @@ export default function Layout() {
           <div>
             <div className="flex items-center gap-1.5">
               <h1 className="text-base font-bold text-brand-950 dark:text-white tracking-tight">XPIA Tools</h1>
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-px rounded-full bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">Beta</span>
+              {!isLocal && <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-px rounded-full bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">Beta</span>}
             </div>
-            <p className="text-[11px] text-gray-400 font-medium">Security Research</p>
+            <p className="text-[11px] text-gray-400 font-medium">{isLocal ? 'Desktop Edition' : 'Security Research'}</p>
           </div>
         </NavLink>
         <button
@@ -177,7 +177,7 @@ export default function Layout() {
         <div className="flex items-center gap-2">
           <img src="/Xpia shield no background.png" alt="" className="w-4 h-4" />
           <span className="text-sm font-bold text-brand-950 dark:text-white">XPIA Tools</span>
-          <span className="text-[8px] font-bold uppercase tracking-wider px-1 py-px rounded-full bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">Beta</span>
+          {!isLocal && <span className="text-[8px] font-bold uppercase tracking-wider px-1 py-px rounded-full bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">Beta</span>}
         </div>
         <div className="w-8" /> {/* Spacer for centering */}
       </div>

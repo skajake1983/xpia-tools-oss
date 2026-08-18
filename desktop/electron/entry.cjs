@@ -19,7 +19,8 @@ const REPO_URL = 'https://github.com/skajake1983/xpia-tools-oss';
 if (!process.env.NODE_ENV) process.env.NODE_ENV = 'development';
 if (!process.env.LOG_LEVEL) process.env.LOG_LEVEL = 'silent';
 process.env.XPIA_LOCAL_MODE = '1';
-if (!process.env.XPIA_NO_LOCAL_DOC_STORE) process.env.XPIA_NO_LOCAL_DOC_STORE = '1';
+// The removed-page screen links here instead of the localhost client URL (server config.publicSiteUrl).
+if (!process.env.PUBLIC_SITE_URL) process.env.PUBLIC_SITE_URL = 'https://www.xpiatools.com';
 
 // A fatal startup error has nowhere visible to go in a GUI app — record it to a file.
 const STARTUP_LOG = path.join(os.tmpdir(), 'xpia-tools-startup.log');
@@ -176,12 +177,25 @@ function stopLanServer() {
 
 async function startLocalServer() {
   process.env.ENCRYPTION_KEY = resolveEncryptionKey();
-  const serverMod = loadServerModule();
-  const { bootstrapLocal, createLocalApp, dumpState } = serverMod;
-  makePublicPageApp = serverMod.createPublicPageApp;
 
   // Persist the user's config (providers/models/keys/prompt edits) across restarts.
   const dataDir = app.getPath('userData');
+
+  // Store generated document/image binaries under userData so the in-app History download
+  // works (the prior no-store mode 404'd on re-download). History metadata is ephemeral (not
+  // in the snapshot), so binaries from a previous run are unreferenceable — clear them on
+  // startup to bound disk use. Must be set before the server module loads.
+  const docsDir = path.join(dataDir, 'documents');
+  process.env.XPIA_LOCAL_DOCS_DIR = docsDir;
+  try {
+    fs.rmSync(docsDir, { recursive: true, force: true });
+  } catch {
+    /* best effort */
+  }
+
+  const serverMod = loadServerModule();
+  const { bootstrapLocal, createLocalApp, dumpState } = serverMod;
+  makePublicPageApp = serverMod.createPublicPageApp;
   const repos = await bootstrapLocal(undefined, { restore: loadState(dataDir) });
   const save = debounce(() => {
     Promise.resolve(dumpState(repos))
@@ -240,10 +254,12 @@ function createWindow(port) {
   win = new BrowserWindow({
     width: 1440,
     height: 920,
-    title: 'XPIA Tools',
+    title: 'XPIA Tools Desktop Edition',
     backgroundColor: '#0a0a0a',
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
+  // Keep our window title — the loaded page's <title> would otherwise override it.
+  win.on('page-title-updated', (e) => e.preventDefault());
   win.loadURL(`http://127.0.0.1:${port}/app`);
   // Open external links (docs, GitHub) in the system browser, not an Electron window.
   win.webContents.setWindowOpenHandler(({ url }) => {

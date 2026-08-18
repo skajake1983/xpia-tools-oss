@@ -111,7 +111,7 @@ export function isConfigured(): boolean {
 // with path: {userId}/{documentId}/{filename}
 // When Azure Blob Storage is not configured, falls back to local filesystem.
 
-const LOCAL_DOCS_DIR = join(process.cwd(), 'data', 'documents');
+const LOCAL_DOCS_DIR = process.env.XPIA_LOCAL_DOCS_DIR || join(process.cwd(), 'data', 'documents');
 
 /**
  * Upload a document binary to the 'documents' blob container.

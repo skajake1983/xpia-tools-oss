@@ -650,29 +650,41 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
           The Settings page manages your account, security, API keys, and appearance preferences.
         </p>
 
-        <h4 className="font-semibold text-gray-900 dark:text-white">Profile</h4>
-        <p>Update your display name, organization, job title, and LinkedIn URL. These are used for account identification and may appear in feedback submissions.</p>
+        {!isLocal && (
+          <>
+            <h4 className="font-semibold text-gray-900 dark:text-white">Profile</h4>
+            <p>Update your display name, organization, job title, and LinkedIn URL. These are used for account identification and may appear in feedback submissions.</p>
+          </>
+        )}
 
         <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Appearance</h4>
         <p>Choose between <strong>Light</strong>, <strong>Dark</strong>, or <strong>System</strong> (follows your OS setting) themes.</p>
 
-        <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Two-Factor Authentication</h4>
-        <p>
-          2FA is <strong>mandatory</strong> for all accounts. After initial email verification, you'll be directed to set up a TOTP authenticator app (Google Authenticator, 1Password, etc.). You can switch authenticator apps from Settings by re-scanning a new QR code and verifying.
-        </p>
+        {!isLocal && (
+          <>
+            <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Two-Factor Authentication</h4>
+            <p>
+              2FA is <strong>mandatory</strong> for all accounts. After initial email verification, you'll be directed to set up a TOTP authenticator app (Google Authenticator, 1Password, etc.). You can switch authenticator apps from Settings by re-scanning a new QR code and verifying.
+            </p>
 
-        <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Change Password</h4>
-        <p>Change your password with inline validation showing requirements (length, uppercase, number, special character). Changing your password invalidates all other active sessions.</p>
+            <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Change Password</h4>
+            <p>Change your password with inline validation showing requirements (length, uppercase, number, special character). Changing your password invalidates all other active sessions.</p>
+          </>
+        )}
 
         <h4 className="font-semibold text-gray-900 dark:text-white mt-2">API Keys</h4>
         <p>
           Add API keys for LLM providers (OpenAI, Google, xAI). Keys are <strong>encrypted at rest</strong> using AES-256-GCM before storage. Each provider shows its cooperation ranking for security research (e.g., refusal rate for research-framed requests). Only one key per provider is active at a time — adding a new key replaces the previous one.
         </p>
 
-        <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Delete Account</h4>
-        <p>
-          Permanently deletes your account and all associated data (documents, payloads, pages, API keys, usage logs). Requires your email and password as confirmation. This action cannot be undone.
-        </p>
+        {!isLocal && (
+          <>
+            <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Delete Account</h4>
+            <p>
+              Permanently deletes your account and all associated data (documents, payloads, pages, API keys, usage logs). Requires your email and password as confirmation. This action cannot be undone.
+            </p>
+          </>
+        )}
       </Section>
 
       {/* Admin Console */}
@@ -683,26 +695,32 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
 
         <h4 className="font-semibold text-gray-900 dark:text-white">Tabs</h4>
         <div className="space-y-3 mt-2">
+          {!isLocal && (
           <div className="border border-gray-100 dark:border-gray-700/50 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-1">
               <Badge color="blue">Requests</Badge>
             </div>
             <p className="text-xs">Review incoming invite requests from users who don't have an invite code. Filter by status (pending, approved, rejected) and approve or reject each request. Approved requests automatically generate an invite code and send it via email.</p>
           </div>
+          )}
 
+          {!isLocal && (
           <div className="border border-gray-100 dark:border-gray-700/50 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-1">
               <Badge color="blue">Users & Roles</Badge>
             </div>
             <p className="text-xs">View all registered users with their profile, role, 2FA status, and creation date. Search by name, email, or organization. Manage each user's daily token limit, role (admin / superadmin), invite generation permission, and suspension status. Delete user accounts when necessary. Superadmins can promote other users to admin.</p>
           </div>
+          )}
 
+          {!isLocal && (
           <div className="border border-gray-100 dark:border-gray-700/50 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-1">
               <Badge color="blue">Invite Codes</Badge>
             </div>
             <p className="text-xs">Create invite codes with an optional recipient name and email, and configurable expiry (1 hour to never). View all codes with usage counts and status (active, used, expired, revoked). Revoke codes that shouldn't be used. Toggle whether invite codes are required for registration site-wide.</p>
           </div>
+          )}
 
           <div className="border border-gray-100 dark:border-gray-700/50 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -718,12 +736,14 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
             <p className="text-xs">Manage the LLM model catalog — add, edit, or remove models. Each model has a display name, provider, pricing (input/output per million tokens), context window size, and max output tokens. Models can be enabled or disabled individually.</p>
           </div>
 
+          {!isLocal && (
           <div className="border border-gray-100 dark:border-gray-700/50 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-1">
               <Badge color="blue">Usage</Badge>
             </div>
             <p className="text-xs">Platform-wide metrics dashboard. Shows all-time totals (documents, payloads, web pages, QR codes, images, custom actions, tokens), a monthly breakdown chart for the current year, and a year-to-date summary. Includes token usage by input/output and total user count.</p>
           </div>
+          )}
 
           <div className="border border-gray-100 dark:border-gray-700/50 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -747,7 +767,7 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
       </Section>}
 
       {/* Maintenance Mode */}
-      {isAdmin && <Section title="Maintenance Mode" icon={<Construction className="w-5 h-5 text-amber-600" />}>
+      {isAdmin && !isLocal && <Section title="Maintenance Mode" icon={<Construction className="w-5 h-5 text-amber-600" />}>
         <p>
           Admins can enable <strong>Maintenance Mode</strong> from the <strong>Admin Console → Invite Codes</strong> tab. When active, all non-admin users see a maintenance banner and are blocked from using the application. Admins retain full access.
         </p>

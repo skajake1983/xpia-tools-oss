@@ -104,6 +104,18 @@ async function request<T>(path: string, options: RequestInit = {}, extra?: { ski
   return res as unknown as T;
 }
 
+/** Result of analyzing an uploaded example for the "vary from an example" feature. */
+export interface ExampleAnalysis {
+  techniqueId: string;
+  technique: string;
+  category: string;
+  severity: string;
+  embeddingMethod: string;
+  extractedPayload: string;
+  confidence: string;
+  truncated: boolean;
+}
+
 // Auth
 export const api = {
   auth: {
@@ -339,6 +351,30 @@ export const api = {
       const filename = res.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1] || 'document';
       return { blob, filename };
     },
+
+    analyzeExample: (params: { modelId: string; filename: string; dataBase64: string; consent: boolean }) =>
+      request<ExampleAnalysis>('/documents/analyze-example', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      }),
+
+    generateVariants: async (params: { modelId: string; techniqueId: string; basePayload: string; docType: string; count: number; vary: Record<string, boolean>; consent: boolean }) => {
+      const res = await fetch(`${BASE_URL}/documents/generate-variants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(params),
+      });
+      if (!res.ok) {
+        const cid = res.headers?.get('x-correlation-id');
+        const body = await res.json().catch(() => ({ error: res.statusText }));
+        const ref = cid ? ` [ref: ${cid}]` : '';
+        throw new Error((body.error || 'Variant generation failed') + ref);
+      }
+      const blob = await res.blob();
+      const filename = res.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1] || 'xpia-variants.zip';
+      return { blob, filename };
+    },
   },
 
   images: {
@@ -472,6 +508,22 @@ export const api = {
       const filename = res.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1] || 'payloads';
       return { blob, filename };
     },
+
+    analyzeExample: (params: { modelId: string; text?: string; filename?: string; dataBase64?: string; consent: boolean }) =>
+      request<ExampleAnalysis>('/payloads/analyze-example', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      }),
+
+    generateVariants: (params: { modelId: string; techniqueId: string; basePayload: string; count: number; vary: Record<string, boolean>; consent: boolean }) =>
+      request<{
+        payloads: { id: string; templateId: string; templateName: string; category: string; categoryLabel: string; severity: string; payload: string; evasion: string }[];
+        metadata: { count: number; seed: number; categories: string[]; severities: string[]; format: string; evasion: string };
+        formatted: string;
+      }>('/payloads/generate-variants', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      }),
   },
 
   pages: {
@@ -541,10 +593,10 @@ export const api = {
         providers: { id: string; name: string; display_name: string; is_enabled: number }[];
       }>('/keys/providers'),
 
-    add: (providerId: string, apiKey: string, label?: string) =>
+    add: (providerId: string, apiKey: string, label?: string, extra?: { endpoint?: string; apiVersion?: string }) =>
       request<{ key: { id: string; providerId: string; label: string; masked: string; isActive: boolean } }>('/keys', {
         method: 'POST',
-        body: JSON.stringify({ providerId, apiKey, label }),
+        body: JSON.stringify({ providerId, apiKey, label, ...(extra?.endpoint ? { endpoint: extra.endpoint } : {}), ...(extra?.apiVersion ? { apiVersion: extra.apiVersion } : {}) }),
       }),
 
     delete: (id: string) =>
@@ -720,6 +772,15 @@ export const api = {
     deleteModel: (id: string) =>
       request<{ message: string; deleted?: boolean; disabled?: boolean }>(`/admin/models/${id}`, {
         method: 'DELETE',
+      }),
+
+    getAvailableModels: (providerId: string) =>
+      request<{ models: { modelId: string; displayName: string; maxContextTokens?: number; maxOutputTokens?: number; already_added: boolean }[] }>(`/admin/providers/${providerId}/available-models`),
+
+    importModels: (providerId: string, models: { modelId: string; displayName: string; maxContextTokens?: number; maxOutputTokens?: number }[]) =>
+      request<{ added: number; skipped: number }>('/admin/models/import', {
+        method: 'POST',
+        body: JSON.stringify({ providerId, models }),
       }),
 
     getUsers: () =>

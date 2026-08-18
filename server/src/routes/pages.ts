@@ -59,7 +59,7 @@ router.get('/public/:slug', publicPageLimiter, async (req: Request, res: Respons
     </div>
     <h1>This page has been removed</h1>
     <p>The link you followed is no longer active. The page owner may have deleted or deactivated it.</p>
-    <a class="btn" href="${config.clientUrl}">Visit XPIA Tools</a>
+    <a class="btn" href="${config.publicSiteUrl}">Visit XPIA Tools</a>
     <div class="footer">XPIA Tools — AI Security Testing Platform</div>
   </div>
 </body>

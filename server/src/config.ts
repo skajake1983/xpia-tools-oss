@@ -20,6 +20,9 @@ export const config = {
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  /** Public marketing site for user-facing links (e.g. the removed-page screen). Falls back to the
+   *  client URL on the hosted app; the desktop sets PUBLIC_SITE_URL to the real site. */
+  publicSiteUrl: process.env.PUBLIC_SITE_URL || process.env.CLIENT_URL || 'http://localhost:5173',
   bcryptRounds: 12,
   /** 64-char hex string (32 bytes) for AES-256-GCM encryption of API keys */
   encryptionKey: process.env.ENCRYPTION_KEY || devEncryptionKey(),

@@ -173,6 +173,8 @@ export default function SettingsPage() {
   const [addProvider, setAddProvider] = useState('');
   const [addKeyValue, setAddKeyValue] = useState('');
   const [addKeyLabel, setAddKeyLabel] = useState('');
+  const [addKeyEndpoint, setAddKeyEndpoint] = useState('');
+  const [addKeyApiVersion, setAddKeyApiVersion] = useState('');
   const [addingKey, setAddingKey] = useState(false);
   const [keysLoading, setKeysLoading] = useState(true);
 
@@ -215,6 +217,7 @@ export default function SettingsPage() {
 
   const configuredProviderIds = new Set(userKeys.map(k => k.provider_id));
   const availableProviders = keyProviders.filter(p => !configuredProviderIds.has(p.id));
+  const isAzureKeyProvider = keyProviders.find((p) => p.id === addProvider)?.name === 'azure-openai';
 
   const handleSaveProfile = async () => {
     setError('');
@@ -243,9 +246,14 @@ export default function SettingsPage() {
     setAddingKey(true);
     setError('');
     try {
-      await api.keys.add(addProvider, addKeyValue, addKeyLabel || undefined);
+      await api.keys.add(addProvider, addKeyValue, addKeyLabel || undefined, {
+        endpoint: addKeyEndpoint.trim() || undefined,
+        apiVersion: addKeyApiVersion.trim() || undefined,
+      });
       setAddKeyValue('');
       setAddKeyLabel('');
+      setAddKeyEndpoint('');
+      setAddKeyApiVersion('');
       setSuccess('API key added successfully');
       await loadKeys();
     } catch (err) {
@@ -317,7 +325,8 @@ export default function SettingsPage() {
         <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your account and security settings</p>
       </div>
 
-      {/* Account / Profile info */}
+      {/* Account / Profile info — hidden in the local single-user build (no accounts) */}
+      {!isLocal && (
       <div className="card mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -396,6 +405,16 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+      )}
+
+      {/* In local mode the Profile/2FA cards (which host the shared status banner) are hidden —
+          surface API-key add/remove feedback here instead. */}
+      {isLocal && (error || success) && (
+        <div className="mb-6 space-y-2">
+          {error && <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/50 dark:text-red-400 rounded-lg px-3 py-2">{error}</p>}
+          {success && <p className="text-sm text-green-600 bg-green-50 dark:bg-green-950/50 dark:text-green-400 rounded-lg px-3 py-2">{success}</p>}
+        </div>
+      )}
 
       {/* Appearance */}
       <div className="card mb-6">
@@ -621,6 +640,29 @@ export default function SettingsPage() {
                     onChange={(e) => setAddKeyLabel(e.target.value)}
                   />
                 </div>
+                {isAzureKeyProvider && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Resource endpoint (https://….openai.azure.com)"
+                      value={addKeyEndpoint}
+                      onChange={(e) => setAddKeyEndpoint(e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="API version (optional, e.g. 2024-10-21)"
+                      value={addKeyApiVersion}
+                      onChange={(e) => setAddKeyApiVersion(e.target.value)}
+                    />
+                  </div>
+                )}
+                {isAzureKeyProvider && (
+                  <p className="text-xs text-gray-400">
+                    Azure OpenAI: enter your resource endpoint here; add each model on the Models tab with its <strong>deployment name</strong> as the model ID.
+                  </p>
+                )}
                 {PROVIDER_KEY_URLS[addProvider] && (
                   <a
                     href={PROVIDER_KEY_URLS[addProvider].url}
@@ -642,7 +684,7 @@ export default function SettingsPage() {
                 <button
                   onClick={handleAddKey}
                   className="btn-primary text-sm"
-                  disabled={addingKey || !addKeyValue.trim()}
+                  disabled={addingKey || !addKeyValue.trim() || (isAzureKeyProvider && !addKeyEndpoint.trim())}
                 >
                   {addingKey ? 'Adding…' : 'Add Key'}
                 </button>
@@ -659,7 +701,8 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Danger Zone */}
+      {/* Danger Zone — hidden in the local single-user build (no account to delete) */}
+      {!isLocal && (
       <div className="card mt-6 border-red-200 dark:border-red-900/50">
         <div className="flex items-center gap-3 mb-4">
           <AlertTriangle className="w-5 h-5 text-red-500" />
@@ -722,6 +765,7 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
