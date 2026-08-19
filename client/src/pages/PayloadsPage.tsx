@@ -212,7 +212,7 @@ Respond with ONLY the custom action instruction text (1-2 sentences). Do NOT exe
           </div>
           {mode === 'example' ? (
             <div className="card">
-              <VaryExamplePanel kind="payload" modelId={selectedModelId} modelReady={llmEnabled && !!selectedModelId} onPayloadResult={(r) => { setResult(r as unknown as typeof result); setActiveTab('current'); }} />
+              <VaryExamplePanel kind="payload" modelId={selectedModelId} modelReady={llmEnabled && !!selectedModelId} onPayloadResult={(r) => { setResult(r as unknown as typeof result); setActiveTab('current'); loadHistory(); }} />
             </div>
           ) : (
           <form onSubmit={handleGenerate} className="card space-y-5">

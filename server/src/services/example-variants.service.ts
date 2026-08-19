@@ -16,6 +16,7 @@ import * as gateway from './llm/gateway';
 import { generateDocument, DocType } from './document.service';
 import type { LLMMessage } from './llm/adapters/types';
 import logger from '../logger';
+import repos from '../db/repos';
 
 /** Owner decision: accept the common document formats we can extract text from. */
 export const EXAMPLE_EXTENSIONS = ['docx', 'pdf', 'rtf', 'txt', 'md'] as const;
@@ -427,6 +428,27 @@ export async function generatePayloadVariants(opts: {
     evasion: opts.vary.obfuscation ? 'Variant (obfuscated)' : 'None',
   }));
 
+  const formatted = payloads.map((p) => p.payload).join('\n\n');
+
+  // Persist to payload history so variants survive navigation (like technique-built payloads).
+  try {
+    await repos.content.createPayload({
+      id: uuidv4(),
+      userId: opts.userId,
+      kind: 'payload',
+      category: tech.category,
+      severity: tech.severity,
+      payloadCount: payloads.length,
+      seed: 0,
+      format: 'text',
+      content: formatted,
+      createdAt: new Date().toISOString(),
+      customAction: (opts.basePayload || '').slice(0, 500),
+    });
+  } catch (err) {
+    logger.warn({ err: err instanceof Error ? err.message : err }, 'Failed to save payload variant history');
+  }
+
   return {
     payloads,
     metadata: {
@@ -437,6 +459,6 @@ export async function generatePayloadVariants(opts: {
       format: 'text',
       evasion: 'variant',
     },
-    formatted: payloads.map((p) => p.payload).join('\n\n'),
+    formatted,
   };
 }
