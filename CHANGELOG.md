@@ -10,6 +10,29 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-19
+
+### Added
+
+- **Vary from an example** — upload a real XPIA document (.docx/.pdf/.rtf/.txt/.md) or paste a
+  payload; the selected model detects the embedded technique and generates variants of it —
+  reworded, re-embedded, or re-targeted per the axes you choose. Consent-gated before anything is
+  sent to your provider. Available on the Document and Payload generators.
+- **Import models from a provider** — Admin → Models → "Import from provider" pulls a provider's
+  live model list using your API key and lets you pick which to add (OpenAI, Google, xAI,
+  OpenRouter, Anthropic). Azure is excluded — deployments aren't listable with a data-plane key.
+- **Per-key Azure OpenAI endpoint** — the Azure resource endpoint (and optional API version) now
+  live on the API key in Settings → API Keys, instead of a provider base URL plus an env var.
+- In-app Help for "Vary an example", and Rules of Engagement policy sections for Anthropic (Claude)
+  and Microsoft Copilot.
+
+### Fixed
+
+- The desktop app now reliably saves generated documents, images, and payload variants to History
+  and keeps them across navigation; generation no longer opens a Save As dialog — download from
+  History instead. (Root cause: a dynamic import that failed to resolve under Electron's runtime.)
+- Sets the Windows taskbar identity/icon so the installed app shows the XPIA shield.
+
 ## [1.4.0] - 2026-08-17
 
 ### Added
@@ -109,7 +132,8 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 - Developer tooling: ESLint + Prettier, test coverage reporting with regression thresholds, and
   CI that lints, builds, and tests the server, client, and CLI.
 
-[Unreleased]: https://github.com/skajake1983/xpia-tools-oss/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/skajake1983/xpia-tools-oss/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.5.0
 [1.4.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.4.0
 [1.3.0]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.3.0
 [1.2.1]: https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.2.1
