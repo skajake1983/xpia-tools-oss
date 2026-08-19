@@ -69,7 +69,7 @@ export const INTEGRATION_CATALOG: IntegrationPreset[] = [
     displayName: 'Azure OpenAI (native)',
     baseUrl: 'https://YOUR-RESOURCE.openai.azure.com',
     models: [],
-    note: 'After adding, set the base URL to your Azure OpenAI resource endpoint and add a model whose model ID is your deployment name. Override the REST API version with the AZURE_OPENAI_API_VERSION env var (default 2024-10-21).',
+    note: 'After adding, open Settings → API Keys, add your Azure OpenAI key, and enter your resource endpoint (and optional API version) right there. Then add a model on the Models tab whose model ID is your deployment name.',
   },
 ];
 

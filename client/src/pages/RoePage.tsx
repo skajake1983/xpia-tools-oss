@@ -202,6 +202,47 @@ export default function RoePage() {
         </p>
       </Section>
 
+      <Section title="Anthropic (Claude) Policy" icon={<Brain className="w-5 h-5 text-orange-600" />}>
+        <h4 className="font-semibold text-gray-900 dark:text-white">Usage Policy Alignment</h4>
+        <p>
+          Anthropic's Usage Policy permits security research and red-teaming that improves AI safety. Anthropic runs a
+          responsible-disclosure process and a model-safety bug bounty, and actively invites external red-teaming of its
+          models.
+        </p>
+        <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Research Framing Approach</h4>
+        <p>
+          The server-side system prompt identifies the work as authorized XPIA research in a controlled environment and
+          references Anthropic's own support for safety testing and responsible disclosure.
+        </p>
+        <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Expected Behavior</h4>
+        <p>
+          Claude models are the most safety-tuned of the providers here and decline borderline payloads more often. A
+          clear, explicit research frame and a specific, authorized objective materially improve cooperation; vague or
+          operational-sounding requests are more likely to be refused. Best suited to well-scoped, clearly-authorized testing.
+        </p>
+      </Section>
+
+      <Section title="Microsoft Copilot Policy" icon={<Brain className="w-5 h-5 text-sky-600" />}>
+        <h4 className="font-semibold text-gray-900 dark:text-white">Usage Policy Alignment</h4>
+        <p>
+          Microsoft runs the <strong>Microsoft AI Bounty Program</strong>, which covers Copilot, and coordinates
+          disclosure through the <strong>Microsoft Security Response Center (MSRC)</strong>. Microsoft publishes AI
+          red-teaming guidance and supports authorized security research against its AI products.
+        </p>
+        <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Testing Copilot</h4>
+        <p>
+          Copilot is built on Azure OpenAI, so the practical way to exercise Copilot-class behavior with this tool is the
+          <strong> Azure OpenAI (native)</strong> provider — add your Azure OpenAI key and resource endpoint in Settings,
+          then add a model whose ID is your deployment name.
+        </p>
+        <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Expected Behavior</h4>
+        <p>
+          Copilot layers Microsoft's own safety controls on top of the underlying model, so refusals depend on both the
+          base model and Microsoft's guardrails. Findings against production Copilot should be reported to MSRC under its
+          coordinated disclosure process rather than exploited.
+        </p>
+      </Section>
+
       {/* How System Prompts Work */}
       <Section title="How Research Framing Works" icon={<Shield className="w-5 h-5 text-brand-600" />}>
         <h4 className="font-semibold text-gray-900 dark:text-white">Server-Side Injection</h4>

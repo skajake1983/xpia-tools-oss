@@ -220,6 +220,11 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
         <p>
           Documents that include QR codes embed the payload within the QR data. For longer payloads, the generator intelligently prioritizes the <strong>directive portion</strong> (the actual instruction to the AI) — truncating context text from the beginning rather than cutting off the critical injection directive at the end. This ensures the QR code always contains the most impactful part of the payload within size constraints.
         </p>
+
+        <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Vary an Example</h4>
+        <p>
+          Switch to the <strong>Vary an example</strong> tab to start from a real XPIA document instead of picking a technique. Upload an example (.docx, .pdf, .rtf, .txt, or .md); the selected model detects its embedded technique and extracts the payload, then generates the number of <strong>variants</strong> you choose — varied by wording, injection technique, target action, or output format per the boxes you tick. Each variant is a full document saved to Recent History. The example is only sent to your provider after you check the consent box.
+        </p>
       </Section>
 
       {/* Image Generator */}
@@ -560,6 +565,11 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
           <li><strong>Cards View</strong> — each payload as an individual card with template name, severity badge, category, evasion type, and copy button.</li>
           <li><strong>Raw View</strong> — all payloads in a single code block. Copy All and Download All buttons available.</li>
         </ul>
+
+        <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Vary an Example</h4>
+        <p>
+          Switch to the <strong>Vary an example</strong> tab to start from a real payload instead of picking a technique. Paste an example XPIA payload (or upload a .txt/.md file); the selected model detects its technique, then generates the number of <strong>variants</strong> you choose — varied by wording, obfuscation, target action, or tone per the boxes you tick. Variants render on the Current tab and are saved to History. The example is only sent to your provider after you check the consent box.
+        </p>
       </Section>
 
       {/* Web Pages */}
