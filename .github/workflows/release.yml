@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '20.x'
+          node-version: '22.x' # Node 22 LTS (20 is EOL as of April 2026)
           cache: 'npm'
           cache-dependency-path: |
             server/package-lock.json

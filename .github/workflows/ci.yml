@@ -5,7 +5,10 @@ on:
     branches: [main]
 
 env:
-  NODE_VERSION: '20.x'
+  # Node 22 LTS. The client test toolchain (jsdom 30 → undici 8) requires Node >= 22,
+  # and Node 20 reached end-of-life in April 2026 — running tests on 20 crashed vitest
+  # workers with `webidl.util.markAsUncloneable is not a function`.
+  NODE_VERSION: '22.x'
 
 jobs:
   test:
