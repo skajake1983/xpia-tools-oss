@@ -60,6 +60,7 @@ async function request<T>(path: string, options: RequestInit = {}, extra?: { ski
     ...options,
     headers,
     credentials: 'include',
+    cache: 'no-store',
   });
 
   // On 401, try a silent token refresh once then retry
@@ -70,6 +71,7 @@ async function request<T>(path: string, options: RequestInit = {}, extra?: { ski
         ...options,
         headers,
         credentials: 'include',
+        cache: 'no-store',
       });
     }
   }

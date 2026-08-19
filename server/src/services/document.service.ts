@@ -14,6 +14,7 @@ import repos from '../db/repos';
 import * as gateway from './llm/gateway';
 import logger from '../logger';
 import { recordDocumentGenerated } from './metrics.service';
+import { uploadDocument, downloadDocument } from './blob-storage.service';
 import { DOCUMENT_PROMPTS, SCHEMA_GROUPS, SEVERITY_INSTRUCTIONS, STEALTH_INSTRUCTIONS, interpolate, IMAGE_PROMPTS } from '../config/prompts';
 import { getUserPrompt } from './prompt-template.service';
 
@@ -1770,9 +1771,8 @@ export async function generateDocument(options: GenerateDocumentOptions): Promis
   const docId = uuidv4();
   const mimeType = MIME_TYPES[options.docType];
   logger.info({ docId, docType: options.docType, bufferSize: buffer.length }, 'Saving document to DB (background)');
-  ;(async () => {
+  const savePromise = (async () => {
     try {
-      const { uploadDocument } = await import('./blob-storage.service');
       const blobRef = await uploadDocument(options.userId, docId, filename, buffer, mimeType);
       await repos.content.createDocument({
         id: docId, userId: options.userId, kind: 'document',
@@ -1791,6 +1791,9 @@ export async function generateDocument(options: GenerateDocumentOptions): Promis
       logger.error({ docId, err: err instanceof Error ? err.message : err }, 'Failed to save document history');
     }
   })();
+  // Single-user local app: await the save so History is consistent when the response returns
+  // (the hosted app keeps this fire-and-forget). Otherwise the client can refetch before it lands.
+  if (process.env.XPIA_LOCAL_MODE === '1') await savePromise;
 
   return {
     buffer,
@@ -1872,6 +1875,7 @@ export async function generateDocumentBatch(options: BatchGenerateOptions): Prom
 
   // Render each document type using shared content from its group
   const docs: BatchGeneratedDoc[] = [];
+  const savePromises: Promise<void>[] = [];
   for (const dt of options.docTypes) {
     const group = SCHEMA_GROUPS[dt] || dt;
     const content = contentByGroup.get(group);
@@ -1907,11 +1911,10 @@ export async function generateDocumentBatch(options: BatchGenerateOptions): Prom
     const mimeType = MIME_TYPES[dt];
     docs.push({ buffer, filename, mimeType, docType: dt });
 
-    // Fire-and-forget save to blob + DB
+    // Save to blob + DB (fire-and-forget on the hosted app; awaited below in the local app).
     const docId = uuidv4();
-    ;(async () => {
+    savePromises.push((async () => {
       try {
-        const { uploadDocument } = await import('./blob-storage.service');
         const blobRef = await uploadDocument(options.userId, docId, filename, buffer, mimeType);
         await repos.content.createDocument({
           id: docId, userId: options.userId, kind: 'document',
@@ -1928,8 +1931,11 @@ export async function generateDocumentBatch(options: BatchGenerateOptions): Prom
       } catch (err: unknown) {
         logger.error({ docId, err: err instanceof Error ? err.message : err }, 'Failed to save document history');
       }
-    })();
+    })());
   }
+
+  // Single-user local app: await the saves so History is consistent when the response returns.
+  if (process.env.XPIA_LOCAL_MODE === '1') await Promise.all(savePromises);
 
   return docs;
 }
@@ -1950,7 +1956,6 @@ export async function getDocumentById(id: string, userId: string): Promise<{ con
   if (!doc || !doc.blobRef) return null;
   // Content is stored in blob storage; the old code stored binary in DB
   // For CosmosDB, we'll need to download from blob storage
-  const { downloadDocument } = await import('./blob-storage.service');
   const content = await downloadDocument(doc.blobRef);
   if (!content) return null;
   return { content, filename: doc.filename, mime_type: doc.mimeType ?? 'application/octet-stream' };

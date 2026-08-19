@@ -10,9 +10,14 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const os = require('os');
-const { app, BrowserWindow, Menu, dialog, safeStorage, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, safeStorage, session, shell } = require('electron');
 
 const REPO_URL = 'https://github.com/skajake1983/xpia-tools-oss';
+
+// Windows: claim our own taskbar identity (must match electron-builder appId) so the packaged app
+// groups + shows the XPIA icon instead of the generic Electron one. In `npm run dev` the taskbar
+// still shows electron.exe's icon — that's the dev runtime, not the app; the installed build is correct.
+if (process.platform === 'win32') app.setAppUserModelId('com.xpiatools.desktop');
 
 // Non-secret env, set before any server module loads. The desktop always runs
 // with dev secret defaults (auth is bypassed locally) plus its own ENCRYPTION_KEY.
@@ -251,13 +256,17 @@ async function startLocalServer() {
 }
 
 function createWindow(port) {
-  win = new BrowserWindow({
+  const winOptions = {
     width: 1440,
     height: 920,
     title: 'XPIA Tools Desktop Edition',
     backgroundColor: '#0a0a0a',
     webPreferences: { contextIsolation: true, nodeIntegration: false },
-  });
+  };
+  // In dev the window would otherwise show Electron's default icon; point it at the XPIA shield.
+  // (The packaged app already gets its icon from the exe via electron-builder.)
+  if (!app.isPackaged) winOptions.icon = path.join(__dirname, '..', 'build', 'icon.ico');
+  win = new BrowserWindow(winOptions);
   // Keep our window title — the loaded page's <title> would otherwise override it.
   win.on('page-title-updated', (e) => e.preventDefault());
   win.loadURL(`http://127.0.0.1:${port}/app`);
@@ -430,6 +439,12 @@ function buildAppMenu() {
 
 app.whenReady().then(async () => {
   try {
+    // Drop any stale HTTP cache so rebuilt assets + fresh API reads (e.g. History) load cleanly.
+    try {
+      await session.defaultSession.clearCache();
+    } catch {
+      /* best effort */
+    }
     const port = await startLocalServer();
     // eslint-disable-next-line no-console
     console.log(`[xpia-desktop] local server ready on 127.0.0.1:${port}`);

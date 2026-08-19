@@ -156,6 +156,14 @@ export interface LocalAppOptions {
 export function createLocalApp(opts: LocalAppOptions = {}): express.Express {
   const app = express();
 
+  // The desktop runs inside Electron/Chromium, which caches GET responses (the SPA bundle and API
+  // reads like /documents/history) and serves stale copies — the cause of History not refreshing
+  // after a generate. Force no-store on every response so reads are always fresh.
+  app.use((_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    next();
+  });
+
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cookieParser());
   // Example uploads (base64 files) for "vary from an example" need headroom; mount a raised limit
