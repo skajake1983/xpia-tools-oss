@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const os = require('os');
-const { app, BrowserWindow, Menu, dialog, safeStorage, session, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, safeStorage, shell } = require('electron');
 
 const REPO_URL = 'https://github.com/skajake1983/xpia-tools-oss';
 
@@ -113,6 +113,7 @@ function resolveEncryptionKey() {
 }
 
 let win = null;
+let serverPort = null; // loopback port, set once the server is listening (drives re-activation)
 let mainServer = null; // the loopback app server (closed on quit)
 let autoUpdater = null; // electron-updater instance (packaged only)
 let manualUpdateCheck = false; // true while a user-triggered "Check for Updates" is pending
@@ -192,11 +193,10 @@ async function startLocalServer() {
   // startup to bound disk use. Must be set before the server module loads.
   const docsDir = path.join(dataDir, 'documents');
   process.env.XPIA_LOCAL_DOCS_DIR = docsDir;
-  try {
-    fs.rmSync(docsDir, { recursive: true, force: true });
-  } catch {
-    /* best effort */
-  }
+  // Clear last session's generated binaries (unreferenceable — History metadata is ephemeral).
+  // Async + fire-and-forget so a large prior-session docs dir never blocks the main process at
+  // startup; the server recreates the dir on demand, well after this completes.
+  fs.rm(docsDir, { recursive: true, force: true }, () => {});
 
   const serverMod = loadServerModule();
   const { bootstrapLocal, createLocalApp, dumpState } = serverMod;
@@ -255,7 +255,7 @@ async function startLocalServer() {
   });
 }
 
-function createWindow(port) {
+function createWindow() {
   const winOptions = {
     width: 1440,
     height: 920,
@@ -269,7 +269,9 @@ function createWindow(port) {
   win = new BrowserWindow(winOptions);
   // Keep our window title — the loaded page's <title> would otherwise override it.
   win.on('page-title-updated', (e) => e.preventDefault());
-  win.loadURL(`http://127.0.0.1:${port}/app`);
+  // Show a local splash IMMEDIATELY so launch (and the first run right after an install) never looks
+  // frozen while the loopback server boots. loadApp() swaps in the real app once the port is ready.
+  win.loadFile(path.join(__dirname, 'splash.html'));
   // Open external links (docs, GitHub) in the system browser, not an Electron window.
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -278,6 +280,11 @@ function createWindow(port) {
   win.on('closed', () => {
     win = null;
   });
+}
+
+/** Swap the visible window from the splash to the running local app. */
+function loadApp(port) {
+  if (win && !win.isDestroyed()) win.loadURL(`http://127.0.0.1:${port}/app`);
 }
 
 /**
@@ -438,27 +445,44 @@ function buildAppMenu() {
 }
 
 app.whenReady().then(async () => {
+  // Put the window + menu up FIRST so the app is visible immediately (a splash) while the local
+  // server boots — previously nothing appeared until the whole server was up, which read as a hang.
+  // The server sets `Cache-Control: no-store` on every response and Vite content-hashes assets, so
+  // the old per-boot session.clearCache() was redundant and has been dropped.
+  createWindow();
+  buildAppMenu();
   try {
-    // Drop any stale HTTP cache so rebuilt assets + fresh API reads (e.g. History) load cleanly.
-    try {
-      await session.defaultSession.clearCache();
-    } catch {
-      /* best effort */
-    }
     const port = await startLocalServer();
+    serverPort = port;
     // eslint-disable-next-line no-console
     console.log(`[xpia-desktop] local server ready on 127.0.0.1:${port}`);
-    createWindow(port);
-    buildAppMenu();
+    loadApp(port);
     setupAutoUpdates();
-    app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow(port);
-    });
   } catch (err) {
     logFatal('whenReady', err);
     // eslint-disable-next-line no-console
     console.error('[xpia-desktop] startup failed', err);
-    app.quit();
+    if (win && !win.isDestroyed()) {
+      dialog
+        .showMessageBox(win, {
+          type: 'error',
+          title: 'XPIA Tools failed to start',
+          message: 'The local server could not start.',
+          detail: String((err && err.message) || err),
+        })
+        .finally(() => app.quit());
+    } else {
+      app.quit();
+    }
+  }
+});
+
+app.on('activate', () => {
+  // macOS re-activation (and safety elsewhere): rebuild the window, going straight to the app if the
+  // server is already up, otherwise showing the splash until startup finishes.
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+    if (serverPort != null) loadApp(serverPort);
   }
 });
 
