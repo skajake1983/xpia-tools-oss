@@ -74,7 +74,11 @@ function debounce(fn, ms) {
 /** Load the server app factory — precompiled in the packaged app, tsx in dev. */
 function loadServerModule() {
   if (app.isPackaged) {
-    return require(path.join(process.resourcesPath, 'server', 'dist', 'server', 'src', 'create-local-app'));
+    // The server, client, and prod node_modules ship as a single resources/payload.asar
+    // (staged + packed by scripts/stage-payload.cjs). Electron reads straight through the
+    // archive; sharp's native tree is unpacked to the sibling payload.asar.unpacked and
+    // Electron redirects those requires there, so require() still resolves the addon.
+    return require(path.join(process.resourcesPath, 'payload.asar', 'server', 'dist', 'server', 'src', 'create-local-app'));
   }
   require('tsx/cjs');
   return require('../../server/src/create-local-app');
@@ -82,7 +86,7 @@ function loadServerModule() {
 
 function resolveClientDist() {
   return app.isPackaged
-    ? path.join(process.resourcesPath, 'client', 'dist')
+    ? path.join(process.resourcesPath, 'payload.asar', 'client', 'dist')
     : path.resolve(__dirname, '../../client/dist');
 }
 
