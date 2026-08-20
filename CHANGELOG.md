@@ -10,6 +10,18 @@ Release notes are also generated automatically on each `vX.Y.Z` tag — see the
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-08-20
+
+### Changed
+
+- **Desktop:** the window now appears immediately with a loading splash on launch, instead of staying hidden until the local server finished booting — so startup (and the first run right after an install) no longer looks frozen.
+- **Desktop:** the Windows installer packs the app payload into a single asar, cutting the installed file count from ~17,500 loose files to ~50, so the one-click installer no longer stalls mid-unpack.
+
+### Fixed
+
+- **Desktop:** hide the account email and "2FA Enabled" badge in the local build (the desktop tool has no auth, so they were misleading).
+- **CI:** build and test on Node 22 (the client test toolchain — jsdom 30 / undici 8 — requires it, and Node 20 is end-of-life).
+
 ## [1.5.0] - 2026-08-19
 
 ### Added
