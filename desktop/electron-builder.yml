@@ -6,23 +6,23 @@ directories:
   output: release
   buildResources: build
 
-# The compiled server, its production-only dependencies, and the built client are
-# staged into ./payload by scripts/stage-payload.cjs, then shipped as resources.
-# Staging installs prod-only deps and drops the cloud/telemetry SDKs the desktop
-# never loads (Cosmos, App Insights + OpenTelemetry, gRPC) — ~64% fewer files than
-# the old full node_modules copy, so the NSIS installer unpacks far faster. These
-# stay outside the asar so sharp's native binaries load without extra handling.
+# The compiled server, its production-only dependencies, and the built client are staged
+# into ./payload by scripts/stage-payload.cjs, which then packs the whole payload into a
+# single ./payload.asar (sharp's native tree unpacked to payload.asar.unpacked alongside).
+# Staging installs prod-only deps and drops the cloud/telemetry SDKs the desktop never
+# loads (Cosmos, App Insights + OpenTelemetry, gRPC). We build our OWN payload.asar because
+# electron-builder strips a foreign node_modules from the app asar; shipping the payload as
+# one archive means NSIS writes ~1 file instead of ~17k loose ones, so the installer no
+# longer stalls mid-unpack. entry.cjs loads the server through resources/payload.asar.
 files:
   - electron/**/*
   - "!electron/main.ts"
 
 extraResources:
-  - from: payload/server/dist
-    to: server/dist
-  - from: payload/server/node_modules
-    to: server/node_modules
-  - from: payload/client/dist
-    to: client/dist
+  - from: payload.asar
+    to: payload.asar
+  - from: payload.asar.unpacked
+    to: payload.asar.unpacked
 
 # Auto-update feed. electron-builder generates `latest.yml` (the update manifest)
 # next to the installer and embeds `app-update.yml` in the app so electron-updater

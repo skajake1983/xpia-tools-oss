@@ -84,4 +84,22 @@ for (const rel of DROP) {
 
 const stats = dirStats(nm);
 log(`payload server/node_modules: ${stats.files.toLocaleString()} files, ${stats.mb.toFixed(0)} MB`);
+
+// 5. Pack the whole payload into a single asar. electron-builder ships it as one
+// extraResource, so NSIS writes ~1 file instead of ~17k loose ones — the loose copy is
+// what made the installer stall mid-unpack. Electron reads server/dist, client/dist, and
+// node_modules straight through the archive. sharp's native tree (the .node addon + its
+// libvips DLLs) can't load from inside an asar, so it's unpacked to the sibling
+// payload.asar.unpacked, which Electron redirects those requires to automatically.
+const payloadAsar = path.join(desktopDir, 'payload.asar');
+fs.rmSync(payloadAsar, { force: true });
+fs.rmSync(`${payloadAsar}.unpacked`, { recursive: true, force: true });
+log('packing payload.asar (unpacking sharp native tree)…');
+execSync(
+  `npx asar pack "${payload}" "${payloadAsar}" --unpack "{**/node_modules/sharp/**,**/node_modules/@img/**}"`,
+  { cwd: desktopDir, stdio: 'inherit' },
+);
+const unpackDir = `${payloadAsar}.unpacked`;
+const unpacked = fs.existsSync(unpackDir) ? dirStats(unpackDir).files : 0;
+log(`payload.asar written; ${unpacked.toLocaleString()} native files unpacked alongside.`);
 log('done.');

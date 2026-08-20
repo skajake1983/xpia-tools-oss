@@ -142,6 +142,9 @@ export default function Layout() {
           <FileText className="w-[18px] h-[18px]" />
           Terms of Use
         </a>
+        {/* Account footer (email + 2FA state + logout) is web-only — the desktop tool has no auth,
+            so `local@localhost` and a "2FA Enabled" badge would be misleading. */}
+        {!isLocal && (
         <div className="flex items-center justify-between">
           <div className="min-w-0">
             <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{user?.email}</p>
@@ -149,7 +152,6 @@ export default function Layout() {
               2FA {user?.totpEnabled ? '✓ Enabled' : '○ Disabled'}
             </p>
           </div>
-          {!isLocal && (
           <button
             onClick={handleLogout}
             className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
@@ -157,8 +159,8 @@ export default function Layout() {
           >
             <LogOut className="w-4 h-4" />
           </button>
-          )}
         </div>
+        )}
         <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-3 text-center">&copy; 2026 XPIA Tools. All rights reserved.</p>
       </div>
     </>
