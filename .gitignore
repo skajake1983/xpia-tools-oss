@@ -9,6 +9,8 @@ cli/out/
 # Desktop (Electron) build output and local app data
 release/
 desktop/payload/
+desktop/payload.asar
+desktop/payload.asar.unpacked/
 .local-data/
 *.db
 .env
