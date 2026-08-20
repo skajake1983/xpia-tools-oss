@@ -17,6 +17,7 @@ directories:
 files:
   - electron/**/*
   - "!electron/main.ts"
+  - "!electron/**/*.test.cjs"
 
 extraResources:
   - from: payload.asar

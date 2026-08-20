@@ -11,6 +11,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const os = require('os');
 const { app, BrowserWindow, Menu, dialog, safeStorage, shell } = require('electron');
+const { resolveEncryptionKey: readEncKey } = require('./enc-key.cjs');
 
 const REPO_URL = 'https://github.com/skajake1983/xpia-tools-oss';
 
@@ -91,29 +92,13 @@ function resolveClientDist() {
 }
 
 /**
- * Per-install 32-byte hex key for the server's AES-256-GCM key encryption, kept
- * OS-encrypted on disk (Windows DPAPI via safeStorage). Generated on first run so
- * stored API keys are protected with a machine-unique secret rather than the
- * shared deterministic dev key in server/config.
+ * Resolve the stable per-install AES-256 key (from userData/enc.key) the server uses to
+ * encrypt stored API keys. The logic — and WHY key stability is safety-critical (a silent
+ * change orphans every saved API key) — lives in ./enc-key.cjs so it can be unit-tested;
+ * here we just supply Electron's safeStorage and the key path.
  */
 function resolveEncryptionKey() {
-  const keyPath = path.join(app.getPath('userData'), 'enc.key');
-  try {
-    if (fs.existsSync(keyPath)) {
-      const blob = fs.readFileSync(keyPath);
-      return safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(blob) : blob.toString('utf8');
-    }
-  } catch {
-    // unreadable/corrupt — regenerate below
-  }
-  const key = crypto.randomBytes(32).toString('hex');
-  const toStore = safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(key) : Buffer.from(key, 'utf8');
-  try {
-    fs.writeFileSync(keyPath, toStore);
-  } catch {
-    // best effort — a non-persisted key still works for this session
-  }
-  return key;
+  return readEncKey(safeStorage, path.join(app.getPath('userData'), 'enc.key'));
 }
 
 let win = null;
