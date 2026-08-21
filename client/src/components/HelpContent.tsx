@@ -399,7 +399,7 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
       {/* Techniques Catalog */}
       <Section title="Injection Techniques (32 Techniques)" icon={<BookOpen className="w-5 h-5 text-amber-600" />}>
         <p>
-          Techniques are organized into <strong>10 attack categories</strong> with 3 severity levels (medium, high, critical). Each technique has a specific template with placeholders and an embedding method.
+          Techniques are organized into <strong>10 attack categories</strong> with 4 severity levels (low, medium, high, critical). Each technique has a specific template with placeholders and an embedding method.
         </p>
 
         {/* Severity Legend */}
