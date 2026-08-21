@@ -132,13 +132,17 @@ export class OpenAIAdapter implements LLMAdapter {
     }
 
     if (!res.ok) {
+      clearTimeout(timeout);
       const body = await res.text();
       throw new Error(`${this.label} API error (${res.status}): ${body}`);
     }
 
     let usage: LLMUsage = { inputTokens: 0, outputTokens: 0 };
     const reader = res.body?.getReader();
-    if (!reader) throw new Error('No response body');
+    if (!reader) {
+      clearTimeout(timeout);
+      throw new Error('No response body');
+    }
 
     const decoder = new TextDecoder();
     let buffer = '';
