@@ -1233,7 +1233,9 @@ export default function AdminPage() {
                 onChange={(e) => fetchAvailableModels(e.target.value)}
               >
                 <option value="">Select provider…</option>
-                {providers.filter((p) => p.is_enabled).map((p) => (
+                {/* Azure OpenAI can't list deployments from a data-plane key — omit it from import
+                    (added manually via the model table instead). */}
+                {providers.filter((p) => p.is_enabled && p.name !== 'azure-openai').map((p) => (
                   <option key={p.id} value={p.id}>{p.display_name}</option>
                 ))}
               </select>

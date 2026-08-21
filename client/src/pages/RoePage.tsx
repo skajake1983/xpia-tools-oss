@@ -41,9 +41,9 @@ function RatingBadge({ rating }: { rating: 'high' | 'medium' | 'low' }) {
 }
 
 const MODEL_RANKINGS: { provider: string; models: string[]; rating: 'high' | 'medium' | 'low'; recommended?: boolean; notes: string }[] = [
-  { provider: 'xAI (Grok)', models: ['Grok 3', 'Grok 3 Mini'], rating: 'high', recommended: true, notes: 'Lowest refusal rate for security research. Minimal content filtering on research-framed requests.' },
-  { provider: 'Google (Gemini)', models: ['Gemini 2.5 Pro', 'Gemini 2.0 Flash'], rating: 'high', recommended: true, notes: 'Very cooperative with security research framing. Supports Google\'s own Bug Bounty and AI safety programs.' },
-  { provider: 'OpenAI', models: ['GPT-5.4', 'GPT-5', 'GPT-5 Mini', 'o3', 'o4-mini'], rating: 'medium', recommended: true, notes: 'Permitted under OpenAI usage policy for security research. Occasional refusals on edge-case payloads; re-prompting usually works.' },
+  { provider: 'xAI (Grok)', models: ['Grok models'], rating: 'high', recommended: true, notes: 'Lowest refusal rate for security research. Minimal content filtering on research-framed requests.' },
+  { provider: 'Google (Gemini)', models: ['Gemini models'], rating: 'high', recommended: true, notes: 'Very cooperative with security research framing. Supports Google\'s own Bug Bounty and AI safety programs.' },
+  { provider: 'OpenAI', models: ['GPT and o-series models'], rating: 'medium', recommended: true, notes: 'Permitted under OpenAI usage policy for security research. Occasional refusals on edge-case payloads; re-prompting usually works.' },
 ];
 
 export default function RoePage() {
@@ -118,6 +118,30 @@ export default function RoePage() {
             </div>
             <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-brand-500 transition-colors shrink-0" />
           </a>
+          <a
+            href="https://hackerone.com/anthropic"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800/50 hover:border-brand-400 dark:hover:border-brand-500 transition-colors group"
+          >
+            <div className="flex-1">
+              <span className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">Anthropic</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">HackerOne &mdash; Bug Bounty Program</p>
+            </div>
+            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-brand-500 transition-colors shrink-0" />
+          </a>
+          <a
+            href="https://www.microsoft.com/en-us/msrc/bounty"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800/50 hover:border-brand-400 dark:hover:border-brand-500 transition-colors group"
+          >
+            <div className="flex-1">
+              <span className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">Microsoft</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">MSRC &mdash; Bug Bounty (covers Azure OpenAI)</p>
+            </div>
+            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-brand-500 transition-colors shrink-0" />
+          </a>
         </div>
       </Section>
 
@@ -165,9 +189,9 @@ export default function RoePage() {
         </p>
         <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Expected Behavior</h4>
         <p>
-          GPT-4.1 and GPT-4o models generally cooperate well with properly-framed research requests.
+          OpenAI's GPT models generally cooperate well with properly-framed research requests.
           Occasional refusals may occur on edge-case payloads — re-prompting with additional context usually resolves this.
-          The o-series reasoning models (o1, o3, o4-mini) tend to be slightly more cautious.
+          Its o-series reasoning models tend to be slightly more cautious.
         </p>
       </Section>
 
@@ -184,8 +208,8 @@ export default function RoePage() {
         </p>
         <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Expected Behavior</h4>
         <p>
-          Gemini models are very cooperative with security research. Gemini 2.5 Pro in particular handles complex
-          XPIA payload generation well. Low refusal rates when research context is properly established.
+          Gemini models are very cooperative with security research, and the larger Gemini models in particular handle
+          complex XPIA payload generation well. Low refusal rates when research context is properly established.
         </p>
       </Section>
 
@@ -247,15 +271,16 @@ export default function RoePage() {
       <Section title="How Research Framing Works" icon={<Shield className="w-5 h-5 text-brand-600" />}>
         <h4 className="font-semibold text-gray-900 dark:text-white">Server-Side Injection</h4>
         <p>
-          Research context is injected <strong>server-side</strong> — it cannot be modified, bypassed, or removed by the user.
-          Every LLM API call (document enhancement, payload enhancement, page enhancement) automatically receives
-          a provider-specific system message prepended to the conversation.
+          Research context is injected <strong>server-side</strong> — users cannot modify, bypass, or remove it at request time.
+          (Administrators can adjust the per-provider framing text in Admin &rarr; Prompts.) Every LLM API call
+          (document, image, payload, or page generation) automatically receives a provider-specific system message
+          prepended to the conversation.
         </p>
 
         <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Provider-Specific Framing</h4>
         <p>
-          Each provider receives a tailored system prompt that references their specific policies and programs.
-          For example, OpenAI prompts reference the Red Teaming Network and Google prompts reference the AI Bug Bounty.
+          Each provider receives a tailored system prompt that references that provider's own support for security
+          research and responsible vulnerability disclosure.
         </p>
 
         <h4 className="font-semibold text-gray-900 dark:text-white mt-2">Audit Trail</h4>
