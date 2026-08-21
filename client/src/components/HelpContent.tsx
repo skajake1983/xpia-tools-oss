@@ -399,7 +399,7 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
       {/* Techniques Catalog */}
       <Section title="Injection Techniques (32 Techniques)" icon={<BookOpen className="w-5 h-5 text-amber-600" />}>
         <p>
-          Techniques are organized into <strong>10 attack categories</strong> with 4 severity levels. Each technique has a specific template with placeholders and an embedding method.
+          Techniques are organized into <strong>10 attack categories</strong> with 3 severity levels (medium, high, critical). Each technique has a specific template with placeholders and an embedding method.
         </p>
 
         {/* Severity Legend */}
@@ -528,12 +528,13 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
       {/* Payload Generator */}
       <Section title="Payload Generator" icon={<Zap className="w-5 h-5 text-amber-600" />}>
         <p>
-          Creates structured injection payloads by combining <strong>12 templates × 15 action targets × 10 wrapper phrases × 8 evasion modifiers</strong> for ~7,320+ unique combinations. Payloads are generated deterministically using a seeded random number generator.
+          Creates structured injection payloads by combining <strong>12 templates × 15 action targets × 10 wrapper phrases × 8 evasion modifiers</strong> — thousands of unique combinations. Payloads are generated deterministically using a seeded random number generator.
         </p>
 
         <h4 className="font-semibold text-gray-900 dark:text-white">Controls</h4>
         <ul className="list-disc pl-5 space-y-1">
           <li><strong>Attack Categories</strong> — filter which template categories to include.</li>
+          <li><strong>Custom Action</strong> — optional. The instruction the injected payload should try to make the target AI execute (can be AI-assisted). When left blank, the technique's default action is used.</li>
           <li><strong>Minimum Severity</strong> — slider from "All" to "Critical only". Sets a floor: only templates at or above this severity are used.</li>
           <li><strong>Payload Count</strong> — how many payloads to generate (1–50).</li>
           <li><strong>Random Seed</strong> — makes generation reproducible. Same seed + same settings = identical payloads.</li>
@@ -650,7 +651,7 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
           <li><strong>Monthly API Calls</strong> — a chronological list of LLM calls from the last 30 days with status (ok, error, limit_hit), duration, purpose, and token counts. Click any entry to view full request/response details. Entries older than 30 days are automatically cleaned up.</li>
         </ul>
         <p>
-          Usage data is logged automatically every time an LLM call is made through the Document, Payload, or Page generators.
+          Usage data is logged automatically every time an LLM call is made through the Document, Image, Payload, or Page generators.
         </p>
       </Section>
 
@@ -684,7 +685,7 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
 
         <h4 className="font-semibold text-gray-900 dark:text-white mt-2">API Keys</h4>
         <p>
-          Add API keys for LLM providers (OpenAI, Google, xAI). Keys are <strong>encrypted at rest</strong> using AES-256-GCM before storage. Each provider shows its cooperation ranking for security research (e.g., refusal rate for research-framed requests). Only one key per provider is active at a time — adding a new key replaces the previous one.
+          Add API keys for LLM providers (OpenAI, Anthropic, Google, xAI, OpenRouter, and Azure OpenAI). Keys are <strong>encrypted at rest</strong> using AES-256-GCM before storage. Each provider shows its cooperation ranking for security research (e.g., refusal rate for research-framed requests). Only one key per provider is active at a time — adding a new key replaces the previous one.
         </p>
 
         {!isLocal && (
@@ -736,7 +737,7 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
             <div className="flex items-center gap-2 mb-1">
               <Badge color="blue">Providers</Badge>
             </div>
-            <p className="text-xs">Enable or disable LLM providers (OpenAI, Google, xAI). Disabling a provider prevents all users from making API calls through that provider until re-enabled.</p>
+            <p className="text-xs">Enable or disable LLM providers (OpenAI, Anthropic, Google, xAI, OpenRouter, and Azure OpenAI). Disabling a provider prevents all users from making API calls through that provider until re-enabled.</p>
           </div>
 
           <div className="border border-gray-100 dark:border-gray-700/50 rounded-xl p-4">
@@ -816,7 +817,7 @@ export default function HelpContent({ isAdmin = false }: { isAdmin?: boolean }) 
           The <strong>Rules of Engagement</strong> page (accessible from the sidebar) outlines responsible use guidelines for XPIA testing tools. It covers:
         </p>
         <ul className="list-disc pl-5 space-y-1">
-          <li><strong>Provider-Specific Policies</strong> — links to each LLM provider's acceptable use and vulnerability disclosure policies (OpenAI, Google, xAI, Microsoft, Meta).</li>
+          <li><strong>Provider-Specific Policies</strong> — links to each LLM provider's acceptable use and vulnerability disclosure policies (OpenAI, Anthropic, Google, xAI, and Microsoft).</li>
           <li><strong>Model Rankings</strong> — a ranked comparison of LLM providers and models by cooperation level for security research, with specific notes on refusal rates and research-framing support.</li>
           <li><strong>Bug Bounty Programs</strong> — links to official security research and bug bounty programs for major AI providers.</li>
           <li><strong>Ethical Guidelines</strong> — best practices for responsible AI red-teaming, including obtaining authorization, minimizing harm, and documenting findings.</li>
