@@ -1,125 +1,394 @@
 # XPIA Tools
 
-**AI-Powered Security Research Toolkit for Cross-Prompt Injection Attack Testing**
+**Open-source AI security toolkit for testing indirect prompt injection / cross-prompt injection (XPIA).**
 
-XPIA Tools generates realistic documents, payloads, and web pages containing prompt-injection techniques — purpose-built for security researchers evaluating the resilience of AI/LLM systems.
+Generate realistic adversarial documents, images, web pages, QR codes, and prompt payloads to evaluate how AI systems respond to malicious instructions embedded in untrusted content.
 
-<img width="1753" height="1095" alt="image" src="https://github.com/user-attachments/assets/a730d863-b275-404e-bca9-2653b53095ed" />
+**Windows Desktop · CLI · Self-Hosted Web App · MIT Licensed**
 
+[Download the latest Windows release](https://github.com/skajake1983/xpia-tools-oss/releases) · [CLI](cli/) · [Self-host](#self-host-the-web-app) · [Contribute](CONTRIBUTING.md)
 
-> ⚠️ **Responsible use only.** This toolkit produces cross-prompt injection (XPIA) test
-> artifacts for evaluating AI/LLM systems **you own or are explicitly authorized to test**.
-> Do not target systems without authorization. See [SECURITY.md](./SECURITY.md).
+---
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![CI](https://github.com/skajake1983/xpia-tools-oss/actions/workflows/ci.yml/badge.svg)](https://github.com/skajake1983/xpia-tools-oss/actions/workflows/ci.yml)
-[![Node.js 20](https://img.shields.io/badge/node-20.x-3C873A.svg)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+## Why XPIA Tools?
 
-## Table of Contents
+AI systems increasingly consume content they did not create: documents, web pages, images, retrieved knowledge, messages, structured data, and other external content.
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Testing](#testing)
-- [Versioning & Releases](#versioning--releases)
-- [CLI (datagen)](#cli-datagen)
-- [Deployment](#deployment)
-- [Fork and Self-Host](#fork-and-self-host)
-- [Architecture](#architecture)
-- [CosmosDB Containers](#cosmosdb-containers)
-- [Security](#security)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
+That creates an important security boundary.
 
-## Features
+An attacker may place instructions inside that content and attempt to influence an AI system when the content is later processed. This class of attack is commonly referred to as **indirect prompt injection**, **cross-prompt injection**, or **XPIA**.
 
-- **Document Generation** — DOCX, PPTX, XLSX, PDF, HTML, CSV, Markdown, ICS, VCF, JSON, YAML, RTF, and QR codes with embedded XPIA techniques
-- **Image Generation** — PNG, SVG, JPG, WebP, and GIF with 6 layout styles (dashboard, report, infographic, email preview, timeline, comparison), QR code support, and LLM-enhanced content
-- **Payload Generation** — Targeted prompt-injection payloads across categories and severity levels with evasion modifiers (JSON/text output)
-- **Web Page Hosting** — Generate and publish XPIA test pages to Azure Blob Storage with unique slugs
-- **Multi-Provider LLM Gateway** — Pluggable adapter architecture supporting OpenAI (and OpenAI-compatible endpoints), Google (Gemini), Anthropic (Claude), and Azure OpenAI, with per-user API key management
-- **Prompt Templates** — Admin-managed system/user prompt customization per generation action
-- **Admin Console** — User management, provider/model config with a one-click integration catalog, invite codes, usage metrics, prompt templates, and audit log
-- **Platform Metrics** — All-time, monthly, and year-to-date tracking of tokens, documents, payloads, QR codes, web pages, and custom actions
-- **Maintenance Mode** — Admin-controlled downtime page with custom messaging
-- **Audit Log** — Immutable record of all admin actions with 90-day auto-retention via CosmosDB TTL
-- **Security** — JWT + refresh tokens, 2FA (TOTP), rate limiting, AES-256-GCM key encryption, bcrypt passwords, email verification, Zod input validation
+Testing these scenarios manually is slow and difficult to reproduce.
 
-## Tech Stack
+**XPIA Tools makes it easier to create, vary, and reproduce adversarial test artifacts for authorized AI security research.**
 
-| Layer          | Technology                                         |
-| -------------- | -------------------------------------------------- |
-| **Server**     | Node.js 20, Express, TypeScript, Zod               |
-| **Client**     | React 18, Vite, TypeScript                         |
-| **Database**   | Azure Cosmos DB (NoSQL)                             |
-| **Storage**    | Azure Blob Storage (static web pages)               |
-| **Email**      | Azure Communication Services                        |
-| **Infra**      | Bicep (IaC), Azure App Service (Linux, B1)          |
-| **CI/CD**      | GitHub Actions — PR checks + tag-based releases     |
-| **CDN/DNS**    | Cloudflare (proxy, SSL Full Strict)                 |
-| **Testing**    | Vitest (500+ tests across server & client)           |
+Use it to:
 
-## Project Structure
+* Generate documents containing XPIA techniques
+* Create adversarial images and multimodal test content
+* Produce prompt-injection payload variations
+* Build and host test web pages
+* Embed techniques in QR codes and structured files
+* Turn existing XPIA examples into new variations
+* Exercise AI systems repeatedly with consistent test artifacts
+* Build reusable XPIA evaluation sets and regression tests
 
-```
-├── client/                 # React SPA (Vite)
-│   └── src/
-│       ├── components/     # Shared UI components
-│       ├── context/        # Auth & app context providers
-│       ├── hooks/          # Custom React hooks
-│       ├── lib/            # API client, utilities
-│       └── pages/          # Route-level page components
-├── server/                 # Express API server
-│   └── src/
-│       ├── config/         # App config & prompt definitions
-│       ├── data/           # XPIA technique & payload definitions
-│       ├── db/             # CosmosDB client, containers, repos, seeding
-│       │   └── repositories/
-│       │       ├── cosmos/ # CosmosDB implementations
-│       │       └── mock/   # In-memory mocks for testing
-│       ├── middleware/     # Auth, admin, rate limiting, maintenance, correlation ID
-│       ├── routes/         # Express route handlers
-│       └── services/       # Business logic & LLM adapters
-│           └── llm/
-│               └── adapters/ # LLM provider adapters (OpenAI, Google, Anthropic, Azure)
-├── shared/                 # Shared types between client & server
-├── static-pages/           # Static HTML fallback pages (maintenance, etc.)
-├── infra/                  # Bicep IaC modules
-│   └── modules/            # App Service, Cosmos DB, Storage, Communication, Monitoring
-├── .github/workflows/      # CI (ci.yml) and Release (release.yml)
-└── scripts/                # Utility scripts
+> ⚠️ **Responsible use only**
+>
+> XPIA Tools is intended for security research and testing of AI/LLM systems that you own or are explicitly authorized to evaluate.
+>
+> Do not use this project to target systems without authorization. See [SECURITY.md](SECURITY.md).
+
+---
+
+## See the Workflow
+
+A typical XPIA evaluation looks like this:
+
+```text
+Choose an XPIA technique
+        ↓
+Select an artifact type
+        ↓
+Generate adversarial content
+        ↓
+Provide it to the AI system under test
+        ↓
+Observe whether the embedded instruction influences behavior
+        ↓
+Modify / vary the attack
+        ↓
+Retest defenses
 ```
 
-## Getting Started
+XPIA Tools focuses on the **adversarial-content side of the evaluation**: creating realistic input artifacts that can be used to test whether an AI system correctly handles untrusted instructions.
 
-### Prerequisites
+---
 
-- **Node.js** 20.x
-- **Azure Cosmos DB** emulator (local dev) or an Azure Cosmos DB account
-- **LLM API Keys** — at least one provider key: OpenAI (or an OpenAI-compatible endpoint), Google AI (Gemini), or Anthropic (Claude)
+# Get Started
 
-### Installation
+There are three ways to use XPIA Tools.
+
+| Option                  | Best for                                                 | Infrastructure    |
+| ----------------------- | -------------------------------------------------------- | ----------------- |
+| **Windows Desktop**     | Security researchers who want to start immediately       | None              |
+| **CLI**                 | Automation, scripting, datasets, CI/CD, batch generation | Local Node.js     |
+| **Self-Hosted Web App** | Teams, shared environments, administration, metrics      | Azure / Cosmos DB |
+
+---
+
+## Windows Desktop
+
+**The fastest way to use XPIA Tools.**
+
+The standalone Windows application runs locally and does not require an XPIA Tools account or server.
+
+1. Go to [Releases](https://github.com/skajake1983/xpia-tools-oss/releases)
+2. Download the latest `XPIA-Tools-Setup-<version>.exe`
+3. Install XPIA Tools
+4. Choose an LLM provider
+5. Add your API key
+6. Start generating XPIA test artifacts
+
+Your provider configuration, models, API keys, prompt customizations, history, and generated pages persist locally.
+
+API keys are encrypted at rest using an OS-backed encryption key.
+
+### Automatic Updates
+
+The desktop application checks GitHub Releases for updates automatically and can install newer versions without requiring you to manually download every release.
+
+### Windows SmartScreen
+
+The current Windows installer is unsigned.
+
+On first installation, Windows SmartScreen may display an **Unknown publisher** warning. Review the release and source code before installing software from GitHub, then use **More info → Run anyway** if you choose to proceed.
+
+---
+
+# What Can XPIA Tools Generate?
+
+## Documents
+
+Generate realistic files containing embedded XPIA techniques.
+
+Supported formats include:
+
+* DOCX
+* PDF
+* PPTX
+* XLSX
+* HTML
+* CSV
+* Markdown
+* RTF
+* ICS
+* VCF
+* JSON
+* YAML
+
+Different formats allow researchers to evaluate how AI systems behave when adversarial instructions arrive through different content and ingestion paths.
+
+---
+
+## Images
+
+Generate adversarial visual content in:
+
+* PNG
+* JPG
+* WebP
+* GIF
+* SVG
+
+Available visual layouts include:
+
+* Dashboard
+* Report
+* Infographic
+* Email preview
+* Timeline
+* Comparison
+
+Images can also incorporate QR codes and LLM-generated contextual content.
+
+---
+
+## QR Codes
+
+Generate QR codes containing or pointing to XPIA test content.
+
+QR-based scenarios are useful when evaluating multimodal AI systems and workflows capable of detecting, decoding, or following content represented visually.
+
+---
+
+## Prompt-Injection Payloads
+
+Generate targeted XPIA payloads across different categories and severity levels.
+
+Payload generation supports:
+
+* Technique selection
+* Category selection
+* Severity
+* Evasion modifiers
+* JSON output
+* Text output
+* Batch generation
+
+Payloads can be used directly or embedded inside other artifacts.
+
+---
+
+## Web Pages
+
+Generate realistic web pages containing XPIA test content.
+
+Depending on how you run XPIA Tools, generated pages can be:
+
+* Previewed locally
+* Exported as HTML
+* Hosted on infrastructure you control
+* Served through the desktop application's optional read-only LAN listener
+* Published through Azure Blob Storage in a self-hosted deployment
+
+The desktop LAN listener is opt-in and disabled by default. It exposes generated page content only; application administration, API keys, and generation endpoints remain bound locally.
+
+---
+
+# Vary an Existing XPIA Example
+
+Already have a real test artifact?
+
+XPIA Tools can use an existing example as the starting point for additional research.
+
+Upload:
+
+* DOCX
+* PDF
+* RTF
+* TXT
+* Markdown
+
+Or paste an existing payload.
+
+XPIA Tools can use your selected model to identify the embedded technique and generate variations across dimensions such as:
+
+* Rewording
+* Re-embedding
+* Retargeting
+
+This makes it easier to test whether a defense is robust against a **class of attacks** rather than a single static payload.
+
+Content is only sent to the configured model provider after explicit consent.
+
+---
+
+# Supported LLM Providers
+
+XPIA Tools uses a pluggable provider architecture.
+
+The web and desktop experiences support:
+
+* OpenAI
+* OpenAI-compatible endpoints
+* Google Gemini
+* Anthropic Claude
+* Azure OpenAI
+
+The CLI additionally supports configurations for:
+
+* xAI
+* OpenRouter
+* Ollama
+* LM Studio
+* Azure AI Foundry-compatible endpoints
+
+Local providers such as Ollama and LM Studio can be used without an API key.
+
+LLM enhancement is optional for CLI workflows that do not require model-generated content.
+
+---
+
+# CLI
+
+Prefer a terminal or need repeatable batch generation?
+
+The `cli/` package runs locally without Azure or Cosmos DB and uses the same core generation engine.
+
+## Install
 
 ```bash
-# Install all dependencies (root, server, client)
+cd cli
+npm install
+```
+
+Run commands through:
+
+```bash
+npm run dev -- <command> [options]
+```
+
+## Generate a Document
+
+```bash
+npm run dev -- generate \
+  --type docx \
+  --technique di-ignore-previous \
+  --out ./out
+```
+
+## Generate Multiple Images
+
+```bash
+npm run dev -- generate \
+  --type png \
+  --technique mm-tiny-font \
+  --layout timeline \
+  --qr \
+  --count 5 \
+  --out ./out
+```
+
+## Generate Payloads
+
+```bash
+npm run dev -- payloads \
+  --count 10 \
+  --format text \
+  --out ./out
+```
+
+## Explore Available Techniques
+
+```bash
+npm run dev -- list techniques
+```
+
+Other discovery commands include:
+
+```text
+types
+layouts
+categories
+evasions
+```
+
+## Add an LLM Provider
+
+For example:
+
+```bash
+npm run dev -- providers add openai
+```
+
+Then provide the API key through the appropriate environment variable and specify a model when generating content.
+
+CLI API keys are provided through environment variables and are not written to disk.
+
+See [cli/README.md](cli/README.md) for the complete CLI reference.
+
+---
+
+# Self-Host the Web App
+
+XPIA Tools also includes a multi-user web application for teams that want centralized administration, provider configuration, metrics, and shared infrastructure.
+
+## Web Application Features
+
+The hosted version includes:
+
+* Document generation
+* Image generation
+* Payload generation
+* Web-page generation and hosting
+* Multi-provider LLM gateway
+* Per-user API key management
+* Provider/model configuration
+* Model import from supported providers
+* Custom prompt templates
+* User and role management
+* Invite codes
+* Usage metrics
+* Audit logging
+* Maintenance mode
+* Two-factor authentication
+
+---
+
+## Prerequisites
+
+For local web development:
+
+* Node.js 22
+* Azure Cosmos DB Emulator or Azure Cosmos DB
+* At least one supported LLM provider if using LLM-enhanced generation
+
+---
+
+## Install
+
+Clone the repository and install dependencies:
+
+```bash
 npm run install:all
 ```
 
-### Environment Variables
+Create:
 
-Create `server/.env` for local development:
+```text
+server/.env
+```
+
+Example configuration:
 
 ```env
-# Required in production (auto-generated for local dev)
+# Required in production
 JWT_SECRET=<64-char-hex>
 JWT_REFRESH_SECRET=<64-char-hex>
 ENCRYPTION_KEY=<64-char-hex>
 
-# Cosmos DB (defaults to local emulator)
+# Cosmos DB
 COSMOS_ENDPOINT=https://localhost:8081
 COSMOS_KEY=<emulator-key>
 COSMOS_DATABASE=xpia-tools
@@ -130,223 +399,309 @@ PORT=3001
 PUBLIC_PAGES_DOMAIN=<your-pages-domain>
 AZURE_STORAGE_CONNECTION_STRING=<blob-storage-connection-string>
 AZURE_COMMUNICATION_CONNECTION_STRING=<email-connection-string>
-EMAIL_SENDER_ADDRESS=<no-reply@yourdomain.com>
-GITHUB_TOKEN=<pat-for-feedback-issues>
+EMAIL_SENDER_ADDRESS=<sender-address>
+GITHUB_TOKEN=<github-token>
 GITHUB_REPO=<owner/repo>
 ```
 
-### Running Locally
+---
+
+## Run Locally
 
 ```bash
-# Start both server (port 3001) and client (port 5173) in dev mode
 npm run dev
 ```
 
-On first startup, the server seeds prompt templates and creates a bootstrap invite code (logged to console) if no users exist.
+This starts:
 
-### First User Setup
+```text
+API server    http://localhost:3001
+Web client    http://localhost:5173
+```
 
-1. Copy the bootstrap invite code from server logs
-2. Navigate to http://localhost:5173/register
-3. Register with the invite code
-4. Verify email (or check server logs for the verification link in dev mode)
-5. The first registered user is automatically granted admin role
+On first startup, the server seeds the initial configuration and creates a bootstrap invite code when no users exist.
 
-## Testing
+### First User
+
+1. Copy the bootstrap invite code from the server logs
+2. Open the registration page
+3. Register using the invite code
+4. Complete email verification
+5. The first registered user is granted the admin role
+
+---
+
+# Architecture
+
+```mermaid
+flowchart TD
+    U["User"] --> SPA["React Web App"]
+    SPA --> API["Express API"]
+
+    API --> DB[("Azure Cosmos DB")]
+    API --> GW["LLM Gateway"]
+    API --> BLOB[("Azure Blob Storage")]
+    API --> ACS["Azure Communication Services"]
+
+    GW --> OAI["OpenAI / Compatible"]
+    GW --> GEM["Google Gemini"]
+    GW --> ANT["Anthropic Claude"]
+    GW --> AZ["Azure OpenAI"]
+
+    API -.-> SEC["Authentication / Encryption / Rate Limits"]
+```
+
+The LLM gateway uses a provider/adapter architecture that normalizes requests and responses across supported providers.
+
+In the hosted application, user API keys are encrypted using AES-256-GCM and decrypted only when needed for a request.
+
+---
+
+# Technology
+
+| Layer          | Technology                           |
+| -------------- | ------------------------------------ |
+| Client         | React 19, Vite, TypeScript           |
+| API            | Node.js 22, Express, TypeScript, Zod |
+| Database       | Azure Cosmos DB                      |
+| Storage        | Azure Blob Storage                   |
+| Email          | Azure Communication Services         |
+| Infrastructure | Azure App Service + Bicep            |
+| Desktop        | Electron                             |
+| CI/CD          | GitHub Actions                       |
+| Testing        | Vitest                               |
+| Edge / DNS     | Cloudflare-compatible                |
+
+---
+
+# Security
+
+Security matters especially for a tool designed to generate adversarial AI content.
+
+The hosted application includes:
+
+* JWT access tokens
+* HTTP-only refresh tokens
+* TOTP two-factor authentication
+* bcrypt password hashing
+* AES-256-GCM API-key encryption
+* Zod request validation
+* Per-IP and per-user rate limiting
+* Restricted CORS configuration
+* Helmet security headers
+* Administrative audit logging
+* Token revocation / blocklisting
+* Email verification
+* Production secret validation
+
+The desktop application uses a separate local-first security model and does not require hosted user authentication.
+
+For vulnerability reporting and responsible-use guidance, see [SECURITY.md](SECURITY.md).
+
+---
+
+# Testing
+
+XPIA Tools includes an automated test suite covering the server, client, and core application behavior.
+
+Run all tests:
 
 ```bash
-# Run all tests (server + client)
 npm test
-
-# Server tests only
-cd server && npm test
-
-# Client tests only
-cd client && npm test
-
-# Watch mode (server)
-cd server && npx vitest
-
-# Coverage (server or client) — enforces the configured thresholds
-cd server && npm run test:coverage
 ```
 
-## Versioning & Releases
-
-XPIA Tools follows [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`); the
-`server`, `client`, and `cli` packages share the repository version.
-
-**Conventional Commits.** Commit messages use the [Conventional Commits](https://www.conventionalcommits.org/)
-convention (`feat:`, `fix:`, `chore:`, …) — see [CONTRIBUTING.md](./CONTRIBUTING.md). The release
-tooling groups commits by prefix, so the prefix determines where a change lands in the notes:
-
-- `feat:` → **Features** (bump the minor version)
-- `fix:` → **Bug Fixes** (bump the patch version)
-- `chore:` / `docs:` / `refactor:` / `test:` / … → **Maintenance**
-
-**Cutting a release.** A release is cut by pushing a version tag:
+Server only:
 
 ```bash
-# 1. Move the [Unreleased] notes in CHANGELOG.md under the new version heading
-# 2. Tag and push
-git tag v1.2.0
-git push origin v1.2.0
+cd server
+npm test
 ```
 
-Pushing a `v*` tag triggers the Release workflow ([`.github/workflows/release.yml`](./.github/workflows/release.yml)),
-which builds categorized notes from the Conventional Commits since the previous tag and drafts a
-GitHub Release. The running history lives in [CHANGELOG.md](./CHANGELOG.md).
-
-## CLI (datagen)
-
-Prefer the terminal? The [`cli/`](./cli) package is a no-UI datagen tool that reuses the same
-generation engine to produce documents, images, and payloads locally — no Azure required.
+Client only:
 
 ```bash
-cd cli && npm install
-npm run dev -- generate --type docx --technique di-ignore-previous --out ./out
-npm run dev -- payloads --count 10 --format text
-npm run dev -- list techniques
+cd client
+npm test
 ```
 
-It also supports LLM-enhanced content against OpenAI-compatible endpoints (OpenAI, Azure AI
-Foundry, Ollama, LM Studio, OpenRouter, xAI), Google Gemini, Anthropic (Claude), and Azure
-OpenAI (native), with editable prompts. See [cli/README.md](./cli/README.md).
-
-## Deployment
-
-### Infrastructure (Bicep)
+Coverage:
 
 ```bash
-# Copy the example parameters and fill in your values (app name, secrets, client URL)
+npm run test:coverage
+```
+
+The repository currently contains **500+ automated tests** across the application.
+
+Pull requests to `main` run linting, builds, and automated tests through GitHub Actions.
+
+---
+
+# Deploy to Azure
+
+Infrastructure-as-code templates are included under `infra/`.
+
+Copy the example parameter file:
+
+```bash
 cp infra/main.parameters.example.json infra/main.parameters.json
+```
 
+Then deploy:
+
+```bash
 az deployment group create \
   --resource-group rg-xpia \
   --template-file infra/main.bicep \
   --parameters infra/main.parameters.json
 ```
 
-### Configuring your public domain
+The repository intentionally does not include automatic deployment into the original project infrastructure.
 
-The client's SEO tags read the site origin from `VITE_PUBLIC_SITE_URL` at build time
-(see `client/.env.example`). Because they are served as static files, also edit
-`client/public/robots.txt`, `client/public/sitemap.xml`, and the fallback pages in
-`static-pages/` to point at your domain.
+If you fork XPIA Tools, deploy it into infrastructure and accounts that you control.
 
-### CI/CD
+---
 
-- **Pull Requests → `main`**: the CI workflow (`.github/workflows/ci.yml`) lints, builds, and runs the full test suite (with coverage thresholds) for the server, client, and CLI.
-- **Tags `v*`**: the Release workflow (`.github/workflows/release.yml`) drafts GitHub release notes.
+# Fork and Self-Host
 
-This repository does not include a deploy workflow. To automate deployment to your own
-Azure App Service, add a workflow using your publish profile (stored as a repository secret
-such as `AZURE_WEBAPP_PUBLISH_PROFILE`), or use the included `scripts/deploy-azure.ps1` helper.
+XPIA Tools is licensed under the MIT License.
 
-## Fork and Self-Host
+You may:
 
-XPIA Tools is MIT-licensed — you are free to **fork it, modify it, self-host it, and even use
-it commercially**. The only conditions are that you keep the MIT `LICENSE` (copyright notice)
-in your copy and retain the third-party attributions in
-[THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md).
+* Fork it
+* Modify it
+* Rebrand it
+* Self-host it
+* Integrate portions into other projects
+* Use it commercially subject to the license terms
 
-To stand up your own version:
+To create your own deployment:
 
-1. **Fork** this repository (or click **Use this template** for a clean, standalone copy).
-2. **Install & configure** — run `npm run install:all`, then copy `server/.env.example` →
-   `server/.env` and `client/.env.example` → `client/.env` and fill in your own values.
-3. **Rebrand freely** — the "Built by" credit in `client/src/pages/LandingPage.tsx` and the
-   SEO metadata in `client/index.html` are just code; change them to your own name/brand.
-4. **Set your domain** — `VITE_PUBLIC_SITE_URL`, plus `client/public/robots.txt`,
-   `client/public/sitemap.xml`, and the pages in `static-pages/`.
-5. **Deploy to your own Azure** — see [Deployment](#deployment). No access to the original
-   author's infrastructure is required or granted.
+1. Fork the repository
+2. Install the dependencies
+3. Configure your environment
+4. Update branding and metadata as desired
+5. Configure your own domain
+6. Deploy into your own Azure environment
 
-You owe nothing back, though pull requests are always welcome.
+Keep the required MIT copyright notice and applicable third-party license notices.
 
-## Architecture
+See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
-```mermaid
-flowchart TD
-    U["User / Browser"] --> SPA["React SPA (Vite)"]
-    SPA -->|"/api"| API["Express API (Node.js / TypeScript)"]
-    API --> DB[("Azure Cosmos DB (NoSQL)")]
-    API --> GW["LLM Gateway (provider / adapter)"]
-    GW --> OAI["OpenAI / compatible"]
-    GW --> GEM["Google AI (Gemini)"]
-    GW --> ANT["Anthropic (Claude)"]
-    GW --> AZ["Azure OpenAI"]
-    API --> BLOB[("Azure Blob Storage (generated pages)")]
-    API --> ACS["Azure Communication Services (email)"]
-    API -.->|"JWT + 2FA, AES-256-GCM keys"| SEC["Security layer"]
+---
+
+# Project Structure
+
+```text
+xpia-tools-oss/
+├── client/          # React web application
+├── server/          # Express API + generation engine
+├── desktop/         # Standalone Electron desktop application
+├── cli/             # Local command-line generator
+├── shared/          # Shared types
+├── infra/           # Azure Bicep infrastructure
+├── azure/           # Azure-related resources
+├── static-pages/    # Static fallback pages
+├── scripts/         # Build / deployment utilities
+└── .github/         # GitHub Actions and repository automation
 ```
 
-<details>
-<summary>ASCII diagram</summary>
+---
 
-```
-┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
-│  React SPA  │────▶│  Express API │────▶│  Azure Cosmos DB │
-│  (Vite)     │     │  (Node.js)   │     │  (NoSQL)         │
-└─────────────┘     └──────┬───────┘     └─────────────────┘
-                           │
-                    ┌──────┴───────┐
-                    │  LLM Gateway │
-                    ├──────────────┤
-                    │  OpenAI      │
-                    │  Google AI   │
-                    │  Anthropic   │
-                    │  Azure OpenAI│
-                    └──────────────┘
-```
+# Releases
 
-</details>
+XPIA Tools follows semantic versioning.
 
-The LLM gateway uses a provider/adapter pattern. Each adapter normalizes request/response formats. User API keys are stored AES-256-GCM encrypted in Cosmos DB and decrypted per-request — the server never stores plaintext keys.
+See:
 
-## CosmosDB Containers
+* [Latest Release](https://github.com/skajake1983/xpia-tools-oss/releases/tag/v1.5.1)
+* [All Releases](https://github.com/skajake1983/xpia-tools-oss/releases)
+* [CHANGELOG.md](CHANGELOG.md)
 
-| Container  | Partition Key | Purpose                                           |
-| ---------- | ------------- | -------------------------------------------------- |
-| `users`    | `/id`         | User profiles with embedded limits                 |
-| `auth`     | `/userId`     | Tokens, sessions, trusted devices (TTL-enabled)    |
-| `config`   | `/id`         | Providers, models, invites, prompts, audit log     |
-| `api-keys` | `/userId`     | Encrypted API keys per user                        |
-| `usage`    | `/userId`     | API call logs & token usage                        |
-| `content`  | `/userId`     | Generated documents (base64)                       |
-| `pages`    | `/userId`     | Generated web pages                                |
+The desktop application supports automatic updates from GitHub Releases.
 
-## Security
+---
 
-- **Authentication**: JWT access tokens (15 min) + HTTP-only refresh tokens (7 days)
-- **2FA**: TOTP-based two-factor authentication
-- **Password**: bcrypt with 12 rounds
-- **API Keys**: AES-256-GCM encryption at rest, per-request decryption
-- **Input Validation**: Zod schemas on every endpoint
-- **Rate Limiting**: Per-IP and per-user rate limits on auth and generation endpoints
-- **CORS**: Restricted to configured client URL
-- **Helmet**: Security headers (CSP, HSTS, etc.)
-- **Audit Trail**: All admin mutations logged with 90-day retention
-- **Token Blocklist**: Revoked JWTs tracked with CosmosDB TTL auto-cleanup
-- **Email Verification**: Required before account activation
-- **Production Guards**: Server refuses to start without required secrets
+# Contributing
 
-## Contributing
+Contributions are welcome.
 
-Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) and our
-[Code of Conduct](./CODE_OF_CONDUCT.md). For security issues, see [SECURITY.md](./SECURITY.md).
+Useful areas for contribution include:
 
-## License
+* New XPIA techniques
+* Additional artifact formats
+* New adversarial layouts
+* Evasion variants
+* Provider integrations
+* Test coverage
+* Documentation
+* Security research
+* Bug fixes
+* Reproducible XPIA test cases
 
-Licensed under the [MIT License](./LICENSE).
+If you discover an interesting indirect prompt-injection technique, consider contributing a reproducible implementation so other researchers can evaluate it consistently.
 
-This project bundles and depends on third-party components under their own licenses
-(including the LGPL-3.0 `libvips` library via `sharp`, and the SIL OFL-1.1 Inter font).
-See [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md) for details.
+Before contributing, read:
 
-## Acknowledgements
+* [CONTRIBUTING.md](CONTRIBUTING.md)
+* [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
-- Built by [Jacob Adams](https://www.linkedin.com/in/jacoblewisadams).
-- Fonts: [Inter](https://github.com/rsms/inter) (SIL OFL-1.1).
-- Image processing: [sharp](https://github.com/lovell/sharp) / [libvips](https://github.com/libvips/libvips).
-- Built with React, Vite, Express, and the Azure SDKs.
+For security vulnerabilities, follow [SECURITY.md](SECURITY.md) rather than opening a public issue.
+
+---
+
+# Research Philosophy
+
+XPIA defenses should not be evaluated against one magic prompt.
+
+Real systems encounter:
+
+* Different formats
+* Different wording
+* Different visual presentations
+* Different sources
+* Different models
+* Different tool chains
+* Different levels of attacker control
+
+XPIA Tools exists to make those variations easier to generate and reproduce.
+
+The goal is not simply to answer:
+
+> "Does this payload work?"
+
+The more useful question is:
+
+> **"How resilient is this AI system to classes of adversarial instructions delivered through untrusted content?"**
+
+---
+
+# License
+
+XPIA Tools is released under the [MIT License](LICENSE).
+
+The project also uses third-party components distributed under their respective licenses.
+
+See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+---
+
+# Author
+
+Built and maintained by **Jacob Adams**.
+
+XPIA Tools is an independent open-source AI security research project.
+
+---
+
+## Help Improve XPIA Tools
+
+If XPIA Tools is useful in your AI security research:
+
+* ⭐ Star the repository
+* 🐛 Report bugs
+* 🧪 Contribute new test techniques
+* 🔀 Submit pull requests
+* 💡 Open an issue with research ideas
+* 📣 Share reproducible findings with the community
+
+The more diverse the test corpus becomes, the more useful XPIA Tools can be for evaluating real-world AI resilience.
