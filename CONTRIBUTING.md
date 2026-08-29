@@ -10,7 +10,7 @@ and contributions of all kinds — bug fixes, features, docs, and tests — are 
 
 ## Prerequisites
 
-- **Node.js 20.x**
+- **Node.js 22.x**
 - An **Azure Cosmos DB emulator** (local) or a Cosmos DB account
 - At least one LLM API key (OpenAI or Google AI) for exercising generation features
 
