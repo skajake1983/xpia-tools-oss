@@ -4,6 +4,9 @@
 
 XPIA Tools generates realistic documents, payloads, and web pages containing prompt-injection techniques — purpose-built for security researchers evaluating the resilience of AI/LLM systems.
 
+<img width="1753" height="1095" alt="image" src="https://github.com/user-attachments/assets/a730d863-b275-404e-bca9-2653b53095ed" />
+
+
 > ⚠️ **Responsible use only.** This toolkit produces cross-prompt injection (XPIA) test
 > artifacts for evaluating AI/LLM systems **you own or are explicitly authorized to test**.
 > Do not target systems without authorization. See [SECURITY.md](./SECURITY.md).
