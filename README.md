@@ -6,6 +6,9 @@ Generate realistic adversarial documents, images, web pages, QR codes, and promp
 
 **Windows Desktop · CLI · Self-Hosted Web App · MIT Licensed**
 
+<img width="1593" height="989" alt="XPIA Tools Generat a Doc" src="https://github.com/user-attachments/assets/5df9f283-268a-472b-a60c-735d903097d5" />
+
+
 [Download the latest Windows release](https://github.com/skajake1983/xpia-tools-oss/releases) · [CLI](cli/) · [Self-host](#self-host-the-web-app) · [Contribute](CONTRIBUTING.md)
 
 ---
