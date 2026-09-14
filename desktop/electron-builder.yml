@@ -44,6 +44,18 @@ nsis:
   # Retry prompt is suppressed; one-click per-user avoids that whole class.
   oneClick: true
   perMachine: false
+  # Shortcuts: always create a Start-menu entry (and a desktop icon) so the app is
+  # reachable after a one-click install. These match electron-builder's defaults but
+  # are pinned explicitly, with a stable shortcut name, so a shortcut is never missing.
+  createStartMenuShortcut: true
+  createDesktopShortcut: true
+  shortcutName: XPIA Tools
+  # Launch the app when the installer finishes — the visible "done" signal for a one-click
+  # install, after which the in-app first-run splash takes over. (Auto-updates run silently
+  # via quitAndInstall(isSilent, isForceRunAfter=true), so they relaunch regardless.)
+  runAfterFinish: true
+  # A custom NSIS include (build/installer.nsh) labels the file-unpack phase so it doesn't
+  # look frozen. electron-builder auto-detects that file.
   # Space-free on purpose: electron-updater's latest.yml refers to the installer as
   # `XPIA-Tools-Setup-<version>.exe`, and GitHub rewrites spaces in asset names — so a
   # `${productName}` (spaced) filename would not match the manifest and break updates.

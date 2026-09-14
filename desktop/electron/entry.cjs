@@ -295,7 +295,12 @@ function setupAutoUpdates() {
   }
 
   autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  // Do NOT silently apply a downloaded update on a later app quit. That unattended
+  // install can be interrupted (shutdown, sleep, AV) and leave a half-written,
+  // non-launching app — the corruption seen on a 1.5.0 -> 1.5.1 upgrade. Updates
+  // apply only through the explicit, user-confirmed "Restart now" path below, where
+  // the user is present and the download has already been SHA-512 verified.
+  autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.logger = {
     info: () => {},
     debug: () => {},
@@ -340,9 +345,26 @@ function setupAutoUpdates() {
         detail: 'Restart to finish updating. Your providers, API keys, and prompt edits are kept.',
       })
       .then(({ response }) => {
+        if (response !== 0) return;
         // (isSilent, isForceRunAfter): silent is safe for our per-user install
         // (no UAC), so the update applies without the NSIS wizard, then relaunches.
-        if (response === 0) autoUpdater.quitAndInstall(true, true);
+        try {
+          autoUpdater.quitAndInstall(true, true);
+        } catch (err) {
+          // If the apply can't even start, don't strand the user on a broken
+          // launcher — point them at a clean installer they can run by hand.
+          // eslint-disable-next-line no-console
+          console.error('[xpia-desktop] quitAndInstall failed', (err && err.message) || err);
+          if (win && !win.isDestroyed()) {
+            dialog.showMessageBox(win, {
+              type: 'error',
+              title: 'Update could not be applied',
+              message: 'The update could not be installed automatically.',
+              detail:
+                'Please download and run the latest installer from\nhttps://github.com/skajake1983/xpia-tools-oss/releases/latest',
+            });
+          }
+        }
       })
       .catch(() => {});
   });
